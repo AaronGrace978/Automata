@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diatom NCA — order from local rules</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#0a0e14; color:#dfe8f2; font-family: ui-sans-serif, system-ui, sans-serif; }
+  header { padding: 28px 24px 8px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: .02em; }
+  p.sub { opacity:.75; margin:0 0 18px; }
+  main { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; padding: 8px 24px 40px; }
+  .panel { background:#101722; border:1px solid #1f2b3d; border-radius:14px; padding:16px; }
+  canvas { image-rendering: pixelated; border-radius:10px; background:#05070b; width:min(78vw, 480px); height:min(78vw,480px); }
+  .controls { width:min(88vw, 320px); display:flex; flex-direction:column; gap:12px; }
+  label { font-size:13px; opacity:.85; display:flex; justify-content:space-between; }
+  input[type=range]{ width:100%; }
+  button { background:#1c6f8f; color:white; border:0; border-radius:9px; padding:10px 12px; font-size:14px; cursor:pointer; }
+  button.ghost { background:#1a2434; border:1px solid #2b3b52; }
+  .row { display:flex; gap:8px; } .row button{flex:1;}
+  #meters { display:grid; grid-template-columns: 64px 1fr; gap:4px 8px; font-size:12px; }
+  .bar { height:8px; background:#1a2434; border-radius:4px; overflow:hidden; } .bar > div{ height:100%; background:#58c4dc; }
+  footer { text-align:center; opacity:.5; font-size:12px; padding-bottom:24px; }
+  code { background:#1a2434; padding:1px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦠 Diatom NCA <span style="opacity:.55;font-weight:400">— morphogenesis from local rules</span></h1>
+  <p class="sub">One tiny neural rule, run in every cell. A diatom grows from a single cell.
+  Cut it and it heals. Turn on the mic (or the synth) and <b>sound retunes the rule's weights</b> live via FiLM conditioning.
+  Open <code>web/demo.html</code> locally — no server needed. Export trained weights with <code>scripts/export_weights.py</code>.</p>
+</header>
+<main>
+  <div class="panel"><canvas id="view" width="96" height="96"></canvas></div>
+  <div class="panel controls">
+    <div class="row">
+      <button id="reseed">✨ reseed</button>
+      <button id="cut" class="ghost">✂️ cut it</button>
+    </div>
+    <div class="row">
+      <button id="mic" class="ghost">🎤 mic off</button>
+      <button id="synth" class="ghost">🔊 synth on</button>
+    </div>
+    <label>growth steps / frame <span id="speedV">2</span></label>
+    <input id="speed" type="range" min="1" max="6" value="2" />
+    <label>sound influence <span id="gainV">1.0</span></label>
+    <input id="gain" type="range" min="0" max="2" step="0.1" value="1" />
+    <label>genome (cell channels 4–7)</label>
+    <div class="row">
+      <button id="genome" class="ghost">🎲 new genome</button>
+      <button id="sym" class="ghost">🪞 symmetry</button>
+    </div>
+    <div id="meters"></div>
+    <p style="font-size:12px;opacity:.65">Tip: clap or play music — energy bends growth rate, brightness bends pigment,
+    onsets break symmetry. Damage it mid-growth and watch the frustule heal.</p>
+  </div>
+</main>
+<footer>local rule → global diatom · NCA + FiLM audio conditioning · runsFully in your browser</footer>
+<script>
+// ---- tiny NCA engine (mirrors nca/model.py) ----
+const C = 16, HIDDEN = 64, AUDIO = 8, SIZE = 96;
+const NAMES = ["energy","bright","flux","beat","bass","mid","air","contrast"];
+let W1 = null, b1 = null, Wf = null, bf = null, W2 = null, b2 = null;
+let state = null, genome = null, audioVec = new Float32Array(AUDIO);
+let micOn = false, synthOn = true, analyser = null, micData = null, stepsPerFrame = 2, gain = 1.0;
+let synthT = 0, mirror = false;
+
+function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function initRandomWeights(){
+  // primordial-soup weights: small, growth-capable, pretty even untrained
+  const rnd = (s)=>{ const a=new Float32Array(s); for(let i=0;i<s;i++) a[i]=randn()*0.12; return a; };
+  W1 = []; for(let i=0;i<HIDDEN;i++) W1.push(rnd(C*3));
+  b1 = new Float32Array(HIDDEN);
+  Wf = []; for(let i=0;i<HIDDEN*2;i++) Wf.push(rnd(AUDIO).map(v=>v*0.6));
+  bf = new Float32Array(HIDDEN*2);
+  W2 = []; for(let i=0;i<C;i++){ const a=new Float32Array(HIDDEN); for(let j=0;j<HIDDEN;j++) a[j]=randn()*0.02; W2.push(a); }
+  b2 = new Float32Array(C);
+}
+function newGenome(){ genome = new Float32Array(4); for(let i=0;i<4;i++) genome[i]=randn()*0.5; reseed(); }
+function reseed(){
+  state = new Float32Array(C*SIZE*SIZE);
+  const c = SIZE>>1;
+  for(let k=0;k<4;k++) state[(4+k)*SIZE*SIZE + c*SIZE + c] = genome[k];
+  state[3*SIZE*SIZE + c*SIZE + c] = 1.0;
+}
+function perceiveStep(){
+  // returns updated state in place (one CA step), JS-direct for clarity
+  const idx=(ch,y,x)=> ch*SIZE*SIZE + y*SIZE + x;
+  const next = new Float32Array(state);
+  // FiLM from audio
+  const film = new Float32Array(HIDDEN*2);
+  for(let i=0;i<HIDDEN*2;i++){ let s=bf[i]; const w=Wf[i]; for(let k=0;k<AUDIO;k++) s+=w[k]*audioVec[k]*gain; film[i]=s; }
+  const fire = 0.3 + 0.6*Math.min(1, audioVec[0]*3);
+  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
+    if(Math.random()>fire) continue;
+    // alive mask
+    let alive=false;
+    for(let dy=-1;dy<=1&&!alive;dy++) for(let dx=-1;dx<=1;dx++){
+      const yy=y+dy, xx=x+dx; if(yy<0||xx<0||yy>=SIZE||xx>=SIZE) continue;
+      if(state[idx(3,yy,xx)]>0.1){ alive=true; break; }
+    }
+    if(!alive) continue;
+    // perception: identity + sobel grads per channel
+    const p = new Float32Array(C*3);
+    for(let ch=0;ch<C;ch++){
+      const xm=(x-1+SIZE)%SIZE, xp=(x+1)%SIZE, ym=(y-1+SIZE)%SIZE, yp=(y+1)%SIZE;
+      const c00=state[idx(ch,ym,xm)],c01=state[idx(ch,ym,x)],c02=state[idx(ch,ym,xp)];
+      const c10=state[idx(ch,y,xm)], cc=state[idx(ch,y,x)], c12=state[idx(ch,y,xp)];
+      const c20=state[idx(ch,yp,xm)],c21=state[idx(ch,yp,x)],c22=state[idx(ch,yp,xp)];
+      p[ch]      = cc;
+      p[C+ch]  = (c02+c12*2+c22-c00-c10*2-c20)/8;
+      p[2*C+ch]= (c20+c21*2+c22-c00-c01*2-c02)/8;
+    }
+    const h = new Float32Array(HIDDEN);
+    for(let i=0;i<HIDDEN;i++){ let s=b1[i]; const w=W1[i]; for(let k=0;k<C*3;k++) s+=w[k]*p[k];
+      s=s>0?s:0; h[i]=s*(1+film[i])+film[HIDDEN+i]; }
+    for(let ch=0;ch<C;ch++){ let s=b2[ch]; const w=W2[ch]; for(let i=0;i<HIDDEN;i++) s+=w[i]*h[i];
+      next[idx(ch,y,x)] = state[idx(ch,y,x)] + s; }
+  }
+  if(mirror){ // enforce bilateral symmetry (diatom dream mode)
+    for(let ch=0;ch<C;ch++) for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE/2;x++){
+      const a=next[idx(ch,y,x)], b=next[idx(ch,y,SIZE-1-x)], m=(a+b)/2;
+      next[idx(ch,y,x)]=m; next[idx(ch,y,SIZE-1-x)]=m; }
+  }
+  state = next;
+}
+function draw(){
+  const cv = document.getElementById('view'), ctx = cv.getContext('2d');
+  const img = ctx.createImageData(SIZE,SIZE);
+  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
+    const o=(y*SIZE+x)*4, s=y*SIZE+x;
+    const r=state[0*SIZE*SIZE+s], g=state[1*SIZE*SIZE+s], b=state[2*SIZE*SIZE+s], a=state[3*SIZE*SIZE+s];
+    const cl=v=>Math.max(0,Math.min(1,v));
+    img.data[o]=cl(r)*cl(a)*255+10*(1-cl(a)); img.data[o+1]=cl(g)*cl(a)*255+13*(1-cl(a));
+    img.data[o+2]=cl(b)*cl(a)*255+20*(1-cl(a)); img.data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+function meters(){
+  const el = document.getElementById('meters'); el.innerHTML='';
+  NAMES.forEach((n,i)=>{
+    const lab=document.createElement('div'); lab.textContent=n; el.appendChild(lab);
+    const bar=document.createElement('div'); bar.className='bar';
+    const fill=document.createElement('div'); fill.style.width=(Math.min(1,Math.max(0,audioVec[i]))*100)+'%';
+    bar.appendChild(fill); el.appendChild(bar);
+  });
+}
+// mic + synth
+async function toggleMic(){
+  if(micOn){ micOn=false; document.getElementById('mic').textContent='🎤 mic off'; audioVec.fill(0); return; }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser(); analyser.fftSize=1024; src.connect(analyser);
+    micData = new Uint8Array(analyser.frequencyBinCount);
+    micOn=true; document.getElementById('mic').textContent='🎤 mic ON';
+  }catch(e){ alert('mic unavailable: '+e); }
+}
+function pollAudio(){
+  if(micOn && analyser){
+    analyser.getByteFrequencyData(micData);
+    const n=micData.length; let e=0; for(let i=0;i<n;i++) e+=micData[i]*micData[i];
+    e=Math.sqrt(e/n)/255;
+    const bands=[0,0,0]; const per=Math.floor(n/3);
+    for(let b=0;b<3;b++){ let s=0; for(let i=b*per;i<(b+1)*per;i++) s+=micData[i]; bands[b]=s/per/255; }
+    let cent=0,tot=0; for(let i=0;i<n;i++){cent+=i*micData[i];tot+=micData[i];} cent=tot?cent/tot/n:0;
+    const target=[Math.min(1,e*2.2),cent,Math.min(1,Math.abs(e-(pollAudio.p||e))*8),(synthT%1),bands[0],bands[1],bands[2],Math.min(1,bands[2]*1.4)];
+    pollAudio.p=e;
+    for(let i=0;i<AUDIO;i++) audioVec[i]+= (target[i]-audioVec[i])*0.25;
+  } else if(synthOn){
+    synthT+=0.06;
+    const beat=Math.pow(Math.max(0,Math.sin(2*Math.PI*2*synthT*0.06*10)),8);
+    const sweep=0.5+0.5*Math.sin(synthT*0.35);
+    const target=[0.25+0.75*beat, sweep, beat*0.8, (synthT*0.5)%1, beat, 0.3+0.3*Math.sin(synthT*0.23), sweep*0.7, 0.4];
+    for(let i=0;i<AUDIO;i++) audioVec[i]+= (target[i]-audioVec[i])*0.2;
+  } else { for(let i=0;i<AUDIO;i++) audioVec[i]*=0.9; }
+}
+async function tryLoadWeights(){
+  try{
+    const r = await fetch('weights.json');
+    if(!r.ok) return;
+    const j = await r.json();
+    const H=j.hidden_dim;
+    W1=j.fc1_weight.map(r=>Float32Array.from(r)); b1=Float32Array.from(j.fc1_bias);
+    Wf=j.film_weight.map(r=>Float32Array.from(r)); bf=Float32Array.from(j.film_bias);
+    W2=j.fc2_weight.map(r=>Float32Array.from(r)); b2=Float32Array.from(j.fc2_bias);
+    console.log('loaded trained weights, hidden=',H);
+  }catch(e){ console.log('no weights.json, soup mode', e); }
+}
+// wire up
+document.getElementById('reseed').onclick=()=>reseed();
+document.getElementById('genome').onclick=()=>newGenome();
+document.getElementById('sym').onclick=(e)=>{mirror=!mirror;e.target.textContent=mirror?'🪞 symmetry ON':'🪞 symmetry';};
+document.getElementById('cut').onclick=()=>{
+  for(let y=0;y<SIZE;y++)for(let x=Math.floor(SIZE/2);x<SIZE;x++)for(let ch=0;ch<C;ch++)
+    state[ch*SIZE*SIZE+y*SIZE+x]=0;
+};
+document.getElementById('mic').onclick=toggleMic;
+document.getElementById('synth').onclick=(e)=>{synthOn=!synthOn;e.target.textContent=synthOn?'🔊 synth on':'🔊 synth off';};
+document.getElementById('speed').oninput=(e)=>{stepsPerFrame=+e.target.value;document.getElementById('speedV').textContent=e.target.value;};
+document.getElementById('gain').oninput=(e)=>{gain=+e.target.value;document.getElementById('gainV').textContent=(+e.target.value).toFixed(1);};
+initRandomWeights(); newGenome(); tryLoadWeights();
+(function loop(){ pollAudio(); for(let i=0;i<stepsPerFrame;i++) perceiveStep(); draw(); meters(); requestAnimationFrame(loop); })();
+</script>
+</body>
+</html>
