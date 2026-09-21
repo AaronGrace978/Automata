@@ -57,8 +57,18 @@ python scripts/export_weights.py  # -> web/weights.json for the browser demo
 pytest -q
 ```
 
-Then open `web/demo.html` in a browser: reseed, cut, new genome, symmetry mode,
-mic/synth conditioning with live feature meters.
+## Touch it: the browser creature
+
+![Trained creature grown in the browser, then cut in half](assets/demo/browser_grown.png)
+
+`web/demo.html` ships with trained weights (`web/weights.js`) already inside it.
+Download the repo, double-click the file, and a diatom grows from one cell in
+your browser. No server, no install. Reseed it, cut it in half and watch it
+heal, roll a new genome, or turn on the mic and let sound retune the rule.
+
+The JavaScript is a line-for-line port of `nca/model.py` and agrees with
+PyTorch to three decimals on the same weights (1828 vs 1829 alive cells after
+96 steps, mean RGB 0.447/0.383/0.223 vs 0.446/0.383/0.222).
 
 > **Zero-setup route:** run it in the cloud —
 > [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/AaronGrace978/Automata/blob/main/notebooks/diatom_nca_colab.ipynb)
