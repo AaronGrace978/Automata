@@ -4,5 +4,6 @@ assets/*.gif
 assets/*.png
 !assets/hero.png
 assets/*.pt
+assets/*.wav
 web/weights.json
 .pytest_cache/
