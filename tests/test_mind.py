@@ -49,6 +49,26 @@ def test_wound_detected_by_relative_drop():
                                     "pan": 0.5, "symmetry": 0.9}, growth=-0.005, rel_drop=0.5)
 
 
+def test_regeneration_iou_and_jepa_step():
+    from nca.eval import LatentPredictor, jepa_step, regeneration_iou
+    from nca.vision import VisualEncoder
+
+    intact = torch.zeros(1, 16, 16, 16)
+    intact[:, 3, :, 8:] = 1
+    healed = intact.clone()
+    healed[:, 3, :, 12:] = 0
+    score = regeneration_iou(healed, intact)
+    assert 0 < score < 1
+    assert regeneration_iou(intact, intact) == 1.0
+
+    enc, pred = VisualEncoder(), LatentPredictor()
+    opt = torch.optim.Adam(pred.parameters(), lr=1e-2)
+    x = torch.rand(4, 16, 16, 16)
+    a = jepa_step(enc, pred, opt, x)
+    b = jepa_step(enc, pred, opt, x)
+    assert b >= a - 0.05
+
+
 def test_body_and_feeling_agree_while_healing():
     # Lingering pain must read as "healing", not "whole" — layers stay consistent.
     desc = {"mass": 0.3, "rgb": [0.4] * 3, "spread": 0.3, "pan": 0.5, "symmetry": 0.9}
