@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata for Diatom Morphogenesis"
+message: "If you use this work, please cite it as below."
+type: software
+authors:
+  - given-names: Aaron Alexander
+    family-names: Grace
+    affiliation: "Independent Researcher; M.Ed. Higher Education Administration, University of Massachusetts Lowell"
+repository-code: "https://github.com/AaronGrace978/Automata"
+license: MIT
+version: 1.0.0
+date-released: 2026-09-21
+keywords:
+  - neural-cellular-automata
+  - morphogenesis
+  - diatoms
+  - audio-conditioning
+  - artificial-life
+preferred-citation:
+  type: unpublished
+  authors:
+    - given-names: Aaron Alexander
+      family-names: Grace
+  title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata for Diatom Morphogenesis"
+  year: 2026
+  notes: "Working paper v1.0 (WHITEPAPER.md)"

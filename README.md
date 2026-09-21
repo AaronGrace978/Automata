@@ -27,6 +27,7 @@ local computation.
 | **Feed audio into the weights** | `nca/audio.py` + FiLM in `nca/model.py`: 8-dim sound vector → γ/β that scale/shift every hidden neuron + fire-rate + AUDIO sense channel | `python scripts/demo_audio.py --kind beat` or `--wav your.wav` |
 | **Extra cell channels (16)** | `0:2` RGB pigment · `3` alpha/maturity · `4:7` DNA genome · `8:10` morphogen memory · `11` AUDIO sense · `12:15` hidden/silica state | fix DNA per organism to steer fate; read channel 11 as the cell's memory of sound |
 | **Live in the browser** | `web/demo.html` — pure-JS NCA, mic + synth conditioning, cut/genome/symmetry controls | open the file, no server; `scripts/export_weights.py` drops trained weights in |
+| **It talks** | `nca/voice.py` — sonification: growth → stereo pentatonic song (mass→pitch, pigment→chord, growth→loudness, position→pan) | `python scripts/demo_voice.py` → creature sings, then grows under its own song |
 
 ## Quickstart
 
@@ -48,6 +49,7 @@ python scripts/train_diatom.py --steps 3000 --size 48
 python scripts/demo_grow.py --checkpoint assets/checkpoint.pt
 python scripts/demo_regenerate.py --checkpoint assets/checkpoint.pt
 python scripts/demo_audio.py --checkpoint assets/checkpoint.pt --kind bloom
+python scripts/demo_voice.py --checkpoint assets/checkpoint.pt  # it sings 🎵
 python scripts/export_weights.py  # -> web/weights.json for the browser demo
 
 # 6. run the tests
@@ -116,3 +118,17 @@ assets/           checkpoints + generated GIFs (gitignored outputs)
 - Mordvintsev et al., *Growing Neural Cellular Automata* (2020) — pool training, regeneration.
 - Niklasson et al., *Self-Organising Textures / Flow Lenia-ish NCA variants* — stochastic updates, alive masking.
 - Diatom frustule literature: Round, Crawford & Mann, *The Diatoms* — symmetry, areolae, raphe nomenclature borrowed for the generator.
+
+## White paper
+
+The full research write-up lives in [`WHITEPAPER.md`](WHITEPAPER.md) —
+*Diatom NCA: Audio-Conditioned Neural Cellular Automata for Diatom
+Morphogenesis* — with method, experiments, and references. If you use this
+work, please cite it (see [`CITATION.cff`](CITATION.cff)).
+
+## Author
+
+**Aaron Alexander Grace, M.Ed.** — Independent AI researcher. Master's degree
+in Education (Higher Education Administration), University of Massachusetts
+Lowell, plus several professional certificates. This project is his research
+contribution to the AI space: order from local rules, down the Diatom road.
