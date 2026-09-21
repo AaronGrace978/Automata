@@ -155,7 +155,7 @@ For attribution in academic or professional contexts, please cite this work as:
   journal   = {GitHub Repository},
   year      = {2026},
   month     = {September},
-  url       = {https://github.com},
+  url       = {https://github.com/AaronGrace978/Automata},
   note      = {Working paper v1.5}
 }
 ```
