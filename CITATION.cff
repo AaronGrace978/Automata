@@ -24,3 +24,13 @@ preferred-citation:
   title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata That Grow, Heal, Sing, and Speak"
   year: 2026
   notes: "Working paper v1.2 (WHITEPAPER.md)"
+
+cff-version: 1.2.0
+message: "If you use this software or reference this research, please cite it as below."
+authors:
+- family-names: "Grace"
+  given-names: "Aaron Alexander"
+title: "Automata: Diatom NCA — Audio-Conditioned Neural Cellular Automata That Grow, Heal, Sing, and Speak"
+version: 1.5.0
+date-released: 2026-09-21
+url: "https://github.com"
