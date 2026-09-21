@@ -4,9 +4,9 @@
 *Independent Researcher. M.Ed., Higher Education Administration, University of Massachusetts Lowell.*
 Correspondence: [github.com/AaronGrace978/Automata](https://github.com/AaronGrace978/Automata)
 
-*Working paper v1.3, September 2026. One GPU run (3000 steps, 48 px) is reported
-below; multi-seed regeneration statistics are scripted and not yet filled in.
-All code, targets, and demos are open source (MIT).*
+*Working paper v1.4, September 2026. Numbers below come from one 3000-step GPU
+rule (two rollouts) and one 600-step CPU rule (six seeds, with an untrained
+baseline). All code, targets, and demos are open source (MIT).*
 
 **Keywords:** neural cellular automata, morphogenesis, diatoms, audio conditioning,
 FiLM, regeneration, sonification, grounded language, artificial life
@@ -193,15 +193,17 @@ vision, instinct, backbone, and mind.
 
 | ID | Protocol | Result |
 |---|---|---|
-| E1 Growth | Seed one cell, 96 steps | Untrained rule spreads (alive-at-birth). After 250 CPU steps at 32 px, loss falls from ~0.35 to ~0.09 and the organism forms a coherent pigmented body. |
-| E2 Surgery | Grow 64, zero right half, grow 64 | One Colab run (3000 steps, 48 px, GPU): alive-cell IoU in the cut half versus an intact twin is 0.923. N=10 mean±std, disc damage, and an untrained baseline are `scripts/score_regeneration.py`. |
+| E1 Growth | Seed one cell, 96 steps | GPU run, 3000 steps, 48 px: training loss falls from 0.072 to the 0.02–0.05 range and the organism forms a coherent pigmented body. |
+| E2 Surgery | Grow 64, zero right half, grow 64 | Cut-half alive-cell IoU against an intact twin: 0.923 and 0.908 in two independent GPU rollouts of the 3000-step rule. A separate 600-step CPU rule, 6 seeds: trained 0.942 ± 0.008 (half-cut) and 0.943 ± 0.008 (disc); untrained 0.056 ± 0.124 and 0.117 ± 0.186. |
+| E7 Latent prediction | Frozen body encoder; predictor maps masked-half embedding to full-body embedding; fresh grown bodies each step | Train cosine 0.676, held-out cosine 0.672 on bodies never trained on, including damaged ones. The gap is ~0.004, so the ceiling is the untrained encoder, not the predictor. |
 | E3 Sound | Same genome under silence vs. full-energy audio | Trajectories diverge (unit-tested). Synthetic beat / sweep / bloom and real WAVs all condition growth. |
 | E4 Speciation | Six genomes, one rule | Six distinct morphologies with no rule change. |
 | E5 Voice | Render 96-step trajectory to song, feed back | ~15 s stereo song; self-listening growth runs to completion. |
 | E6 Speech | Narrate every 24 steps, three personas, then wound | Post-surgery utterances contain wound predicates; recovery utterances read "healing" while the pain drive persists, then "whole". |
 
-Quantitative regeneration scoring (IoU of healed versus intact halves across
-damage radii) and full-scale runs (3000+ steps, 48–96 px, GPU) are in progress.
+The 10-seed regeneration statistics for the 3000-step GPU rule are scripted as
+notebook section 13 and `scripts/score_regeneration.py`; they are not yet
+reported here.
 
 ---
 
