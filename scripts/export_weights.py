@@ -35,6 +35,15 @@ def main() -> None:
         json.dump(payload, f)
     print(f"exported {args.out} ({os.path.getsize(args.out)/1024:.0f} KB)")
 
+    # Also write weights.js so demo.html works when opened straight from disk,
+    # where browsers refuse fetch() of a local file.
+    js_out = os.path.splitext(args.out)[0] + ".js"
+    with open(js_out, "w") as f:
+        f.write("window.DIATOM_WEIGHTS = ")
+        json.dump(payload, f)
+        f.write(";\n")
+    print(f"exported {js_out} ({os.path.getsize(js_out)/1024:.0f} KB)")
+
 
 if __name__ == "__main__":
     main()

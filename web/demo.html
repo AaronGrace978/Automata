@@ -53,14 +53,19 @@
       <button id="sym" class="ghost">🪞 symmetry</button>
     </div>
     <div id="meters"></div>
+    <p id="status" style="font-size:12px;opacity:.8">loading weights…</p>
     <p style="font-size:12px;opacity:.65">Tip: clap or play music — energy bends growth rate, brightness bends pigment,
     onsets break symmetry. Damage it mid-growth and watch the frustule heal.</p>
   </div>
 </main>
-<footer>local rule → global diatom · NCA + FiLM audio conditioning · runsFully in your browser</footer>
+<footer>local rule → global diatom · NCA + FiLM audio conditioning · runs fully in your browser</footer>
+<script src="weights.js"></script>
 <script>
 // ---- tiny NCA engine (mirrors nca/model.py) ----
-const C = 16, HIDDEN = 64, AUDIO = 8, SIZE = 96;
+const C = 16, AUDIO = 8, SIZE = 96;
+let HIDDEN = 64;               // replaced by hidden_dim from weights.json when present
+let trained = false;
+let genomeScale = 0.5;         // training seeds genomes at 0.2; soup mode uses 0.5
 const NAMES = ["energy","bright","flux","beat","bass","mid","air","contrast"];
 let W1 = null, b1 = null, Wf = null, bf = null, W2 = null, b2 = null;
 let state = null, genome = null, audioVec = new Float32Array(AUDIO);
@@ -79,7 +84,7 @@ function initRandomWeights(){
   W2 = []; for(let i=0;i<C;i++){ const a=new Float32Array(HIDDEN); for(let j=0;j<HIDDEN;j++) a[j]=randn()*0.02; W2.push(a); }
   b2 = new Float32Array(C);
 }
-function newGenome(){ genome = new Float32Array(4); for(let i=0;i<4;i++) genome[i]=randn()*0.5; reseed(); }
+function newGenome(){ genome = new Float32Array(4); for(let i=0;i<4;i++) genome[i]=randn()*genomeScale; reseed(); }
 function reseed(){
   state = new Float32Array(C*SIZE*SIZE);
   const c = SIZE>>1;
@@ -104,12 +109,14 @@ function perceiveStep(){
     }
     if(!alive) continue;
     // perception: identity + sobel grads per channel
+    // zero padding at the border, same as conv2d(padding=1) in the trained model
     const p = new Float32Array(C*3);
+    const g=(ch,yy,xx)=> (yy<0||xx<0||yy>=SIZE||xx>=SIZE) ? 0 : state[idx(ch,yy,xx)];
     for(let ch=0;ch<C;ch++){
-      const xm=(x-1+SIZE)%SIZE, xp=(x+1)%SIZE, ym=(y-1+SIZE)%SIZE, yp=(y+1)%SIZE;
-      const c00=state[idx(ch,ym,xm)],c01=state[idx(ch,ym,x)],c02=state[idx(ch,ym,xp)];
-      const c10=state[idx(ch,y,xm)], cc=state[idx(ch,y,x)], c12=state[idx(ch,y,xp)];
-      const c20=state[idx(ch,yp,xm)],c21=state[idx(ch,yp,x)],c22=state[idx(ch,yp,xp)];
+      const xm=x-1, xp=x+1, ym=y-1, yp=y+1;
+      const c00=g(ch,ym,xm),c01=g(ch,ym,x),c02=g(ch,ym,xp);
+      const c10=g(ch,y,xm), cc=state[idx(ch,y,x)], c12=g(ch,y,xp);
+      const c20=g(ch,yp,xm),c21=g(ch,yp,x),c22=g(ch,yp,xp);
       p[ch]      = cc;
       p[C+ch]  = (c02+c12*2+c22-c00-c10*2-c20)/8;
       p[2*C+ch]= (c20+c21*2+c22-c00-c01*2-c02)/8;
@@ -181,15 +188,26 @@ function pollAudio(){
 }
 async function tryLoadWeights(){
   try{
-    const r = await fetch('weights.json');
-    if(!r.ok) return;
-    const j = await r.json();
-    const H=j.hidden_dim;
+    // weights.js (built by scripts/export_weights.py) sets window.DIATOM_WEIGHTS, so
+    // the page works from a double-click on the file. fetch() is the fallback for servers.
+    let j = window.DIATOM_WEIGHTS;
+    if(!j){
+      const r = await fetch('weights.json');
+      if(!r.ok) throw new Error('no weights');
+      j = await r.json();
+    }
+    HIDDEN=j.hidden_dim;
     W1=j.fc1_weight.map(r=>Float32Array.from(r)); b1=Float32Array.from(j.fc1_bias);
     Wf=j.film_weight.map(r=>Float32Array.from(r)); bf=Float32Array.from(j.film_bias);
     W2=j.fc2_weight.map(r=>Float32Array.from(r)); b2=Float32Array.from(j.fc2_bias);
-    console.log('loaded trained weights, hidden=',H);
-  }catch(e){ console.log('no weights.json, soup mode', e); }
+    trained=true; genomeScale=0.2;
+    newGenome();
+    document.getElementById('status').textContent='trained creature loaded (hidden='+HIDDEN+')';
+    console.log('loaded trained weights, hidden=',HIDDEN);
+  }catch(e){
+    document.getElementById('status').textContent='no weights.json: untrained soup mode';
+    console.log('no weights.json, soup mode', e);
+  }
 }
 // wire up
 document.getElementById('reseed').onclick=()=>reseed();
