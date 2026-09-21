@@ -33,7 +33,7 @@
   Open <code>web/demo.html</code> locally — no server needed. Export trained weights with <code>scripts/export_weights.py</code>.</p>
 </header>
 <main>
-  <div class="panel"><canvas id="view" width="96" height="96"></canvas></div>
+  <div class="panel"><canvas id="view" width="48" height="48"></canvas></div>
   <div class="panel controls">
     <div class="row">
       <button id="reseed">✨ reseed</button>
@@ -62,7 +62,7 @@
 <script src="weights.js"></script>
 <script>
 // ---- tiny NCA engine (mirrors nca/model.py) ----
-const C = 16, AUDIO = 8, SIZE = 96;
+const C = 16, AUDIO = 8, SIZE = 48;
 let HIDDEN = 64;               // replaced by hidden_dim from weights.json when present
 let trained = false;
 let genomeScale = 0.5;         // training seeds genomes at 0.2; soup mode uses 0.5
@@ -117,9 +117,10 @@ function perceiveStep(){
       const c00=g(ch,ym,xm),c01=g(ch,ym,x),c02=g(ch,ym,xp);
       const c10=g(ch,y,xm), cc=state[idx(ch,y,x)], c12=g(ch,y,xp);
       const c20=g(ch,yp,xm),c21=g(ch,yp,x),c22=g(ch,yp,xp);
-      p[ch]      = cc;
-      p[C+ch]  = (c02+c12*2+c22-c00-c10*2-c20)/8;
-      p[2*C+ch]= (c20+c21*2+c22-c00-c01*2-c02)/8;
+      // interleaved per channel [id, sobelx, sobely], matching the grouped conv in nca/model.py
+      p[3*ch]   = cc;
+      p[3*ch+1] = (c02+c12*2+c22-c00-c10*2-c20)/8;
+      p[3*ch+2] = (c20+c21*2+c22-c00-c01*2-c02)/8;
     }
     const h = new Float32Array(HIDDEN);
     for(let i=0;i<HIDDEN;i++){ let s=b1[i]; const w=W1[i]; for(let k=0;k<C*3;k++) s+=w[k]*p[k];

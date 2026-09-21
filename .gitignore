@@ -3,7 +3,10 @@ __pycache__/
 assets/*.gif
 assets/*.png
 !assets/hero.png
+!assets/demo/*.png
 assets/*.pt
+!assets/checkpoint.pt
 assets/*.wav
 web/weights.json
+!web/weights.js
 .pytest_cache/
