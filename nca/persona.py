@@ -6,6 +6,7 @@ cadence, never the facts (the facts come from the instinct layer).
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass, field
 
 
@@ -19,8 +20,10 @@ class Persona:
 
     def voice(self, raw: str, rng: random.Random | None = None) -> str:
         text = raw
-        for plain, styled in self.lexicon.items():
-            text = text.replace(plain, styled)
+        # Longest keys first, and only on word boundaries, so "symmetric"
+        # does not fire inside "asymmetric" (that produced "awhole-ringed").
+        for plain, styled in sorted(self.lexicon.items(), key=lambda kv: len(kv[0]), reverse=True):
+            text = re.sub(rf"\b{re.escape(plain)}\b", styled, text)
         rng = rng or random.Random()
         if self.openers and rng.random() < 0.5:
             text = f"{rng.choice(self.openers)} {text}"
@@ -47,6 +50,8 @@ PERSONAS: dict[str, Persona] = {
             "I feel the pulse.": "I hear the tide drumming.",
             "growing": "blooming",
             "symmetric": "whole-ringed",
+            "asymmetric": "unringed",
+            "whole": "unbroken",
         },
         openers=["Listen.", "From the silica deep:"],
         closer="So it is.",

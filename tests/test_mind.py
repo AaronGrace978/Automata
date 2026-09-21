@@ -76,6 +76,12 @@ def test_body_and_feeling_agree_while_healing():
     assert "whole" in predicates(desc, growth=0.0, pain=0.0)
 
 
+def test_persona_does_not_rewrite_inside_words():
+    said = get_persona("diatom_elder").voice("Body: small, shrinking, wounded, asymmetric.")
+    assert "awhole" not in said
+    assert "asymmetric" in said or "unringed" in said
+
+
 def test_narrator_grounded_and_persona_styled():
     n = GroundedNarrator(seed=1)
     ctx = {"instinct_text": "I am still.", "predicates": ["small", "still", "whole"]}

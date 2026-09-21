@@ -4,8 +4,9 @@
 *Independent Researcher. M.Ed., Higher Education Administration, University of Massachusetts Lowell.*
 Correspondence: [github.com/AaronGrace978/Automata](https://github.com/AaronGrace978/Automata)
 
-*Working paper v1.2, September 2026. Results are from CPU smoke runs; full-scale
-evaluation is in progress. All code, targets, and demos are open source (MIT).*
+*Working paper v1.3, September 2026. One GPU run (3000 steps, 48 px) is reported
+below; multi-seed regeneration statistics are scripted and not yet filled in.
+All code, targets, and demos are open source (MIT).*
 
 **Keywords:** neural cellular automata, morphogenesis, diatoms, audio conditioning,
 FiLM, regeneration, sonification, grounded language, artificial life
@@ -193,7 +194,7 @@ vision, instinct, backbone, and mind.
 | ID | Protocol | Result |
 |---|---|---|
 | E1 Growth | Seed one cell, 96 steps | Untrained rule spreads (alive-at-birth). After 250 CPU steps at 32 px, loss falls from ~0.35 to ~0.09 and the organism forms a coherent pigmented body. |
-| E2 Surgery | Grow 64, zero right half, grow 64 | Damage-trained organisms regrow into the excised region. |
+| E2 Surgery | Grow 64, zero right half, grow 64 | One Colab run (3000 steps, 48 px, GPU): alive-cell IoU in the cut half versus an intact twin is 0.923. N=10 mean±std, disc damage, and an untrained baseline are `scripts/score_regeneration.py`. |
 | E3 Sound | Same genome under silence vs. full-energy audio | Trajectories diverge (unit-tested). Synthetic beat / sweep / bloom and real WAVs all condition growth. |
 | E4 Speciation | Six genomes, one rule | Six distinct morphologies with no rule change. |
 | E5 Voice | Render 96-step trajectory to song, feed back | ~15 s stereo song; self-listening growth runs to completion. |
