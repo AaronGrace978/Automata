@@ -49,6 +49,13 @@ def test_wound_detected_by_relative_drop():
                                     "pan": 0.5, "symmetry": 0.9}, growth=-0.005, rel_drop=0.5)
 
 
+def test_body_and_feeling_agree_while_healing():
+    # Lingering pain must read as "healing", not "whole" — layers stay consistent.
+    desc = {"mass": 0.3, "rgb": [0.4] * 3, "spread": 0.3, "pan": 0.5, "symmetry": 0.9}
+    assert "healing" in predicates(desc, growth=0.0, pain=0.5)
+    assert "whole" in predicates(desc, growth=0.0, pain=0.0)
+
+
 def test_narrator_grounded_and_persona_styled():
     n = GroundedNarrator(seed=1)
     ctx = {"instinct_text": "I am still.", "predicates": ["small", "still", "whole"]}

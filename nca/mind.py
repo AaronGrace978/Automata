@@ -77,7 +77,7 @@ class DiatomMind:
             "descriptor": desc,
             "embedding": emb,
             "growth": growth,
-            "predicates": predicates(desc, growth, rel_drop),
+            "predicates": predicates(desc, growth, rel_drop, pain=self.instinct.pain),
             "instinct_text": self.instinct.to_text(),
             "rid": self.instinct.rid,
         }
