@@ -143,3 +143,20 @@ work, please cite it (see [`CITATION.cff`](CITATION.cff)).
 in Education (Higher Education Administration), University of Massachusetts
 Lowell, plus several professional certificates. This project is his research
 contribution to the AI space: order from local rules, down the Diatom road.
+
+## Citation
+
+For attribution in academic or professional contexts, please cite this work as:
+
+```bibtex
+@article{grace2026diatom,
+  author    = {Grace, Aaron Alexander},
+  title     = {Automata: Diatom NCA — Audio-Conditioned Neural Cellular Automata That Grow, Heal, Sing, and Speak},
+  journal   = {GitHub Repository},
+  year      = {2026},
+  month     = {September},
+  url       = {https://github.com},
+  note      = {Working paper v1.5}
+}
+```
+
