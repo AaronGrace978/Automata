@@ -57,6 +57,10 @@ pytest -q
 Then open `web/demo.html` in a browser: reseed, cut, new genome, symmetry mode,
 mic/synth conditioning with live feature meters.
 
+> **Zero-setup route:** run it in the cloud —
+> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/AaronGrace978/Automata/blob/main/notebooks/diatom_nca_colab.ipynb)
+> (`notebooks/diatom_nca_colab.ipynb`: targets gallery → train → timelapse → surgery → sound → new species).
+
 ## How it works
 
 **The cell.** State is a 16-channel grid. Each step, every cell perceives its
