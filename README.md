@@ -1,5 +1,7 @@
 # 🦠 Diatom NCA — a new kind of AI Automata
 
+![Diatom NCA — a glass centric frustule condensing out of cellular automata](assets/hero.png)
+
 **Neural Cellular Automata for morphogenesis, down the Diatom road.**
 
 One tiny neural network, copied into every cell. No blueprint, no coordinator —
