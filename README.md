@@ -123,8 +123,8 @@ assets/           checkpoints + generated GIFs (gitignored outputs)
 ## White paper
 
 The full research write-up lives in [`WHITEPAPER.md`](WHITEPAPER.md) —
-*Diatom NCA: Audio-Conditioned Neural Cellular Automata for Diatom
-Morphogenesis* — with method, experiments, and references. If you use this
+*Diatom NCA: Audio-Conditioned Neural Cellular Automata That Grow, Heal,
+Sing, and Speak* — with method, experiments, and references. If you use this
 work, please cite it (see [`CITATION.cff`](CITATION.cff)).
 
 ## Author

@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata for Diatom Morphogenesis"
+title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata That Grow, Heal, Sing, and Speak"
 message: "If you use this work, please cite it as below."
 type: software
 authors:
@@ -21,6 +21,6 @@ preferred-citation:
   authors:
     - given-names: Aaron Alexander
       family-names: Grace
-  title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata for Diatom Morphogenesis"
+  title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata That Grow, Heal, Sing, and Speak"
   year: 2026
-  notes: "Working paper v1.0 (WHITEPAPER.md)"
+  notes: "Working paper v1.2 (WHITEPAPER.md)"
