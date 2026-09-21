@@ -4,9 +4,9 @@
 *Independent Researcher. M.Ed., Higher Education Administration, University of Massachusetts Lowell.*
 Correspondence: [github.com/AaronGrace978/Automata](https://github.com/AaronGrace978/Automata)
 
-*Working paper v1.4, September 2026. Numbers below come from one 3000-step GPU
-rule (two rollouts) and one 600-step CPU rule (six seeds, with an untrained
-baseline). All code, targets, and demos are open source (MIT).*
+*Working paper v1.5, September 2026. All reported numbers come from one
+3000-step GPU rule at 48 px; regeneration is scored over 10 seeds against an
+untrained baseline. All code, targets, and demos are open source (MIT).*
 
 **Keywords:** neural cellular automata, morphogenesis, diatoms, audio conditioning,
 FiLM, regeneration, sonification, grounded language, artificial life
@@ -58,7 +58,9 @@ richer than pixels. We address both, using the diatom as model organism.
 2. **Procedural diatom targets.** Parametric centric and pennate generators with
    girdle, ribs, striae, areolae, raphe, and rosette structure (§3.4).
 3. **Regeneration by construction.** Pool training with damage on half of every
-   batch yields organisms that re-grow excised halves (§3.5).
+   batch yields organisms that re-grow excised halves: IoU 0.89 ± 0.02 on
+   half-cuts and 0.79 ± 0.02 on disc wounds over 10 seeds, against 0.33 and
+   0.00 for an untrained rule (§3.5, Table 3).
 4. **Sonification loop.** A fixed growth-to-song map whose output re-enters the
    conditioner, closing a sensorimotor loop with no extra training (§3.6).
 5. **The talking NCA.** Visual module, instinct layer, grounded language
@@ -194,16 +196,27 @@ vision, instinct, backbone, and mind.
 | ID | Protocol | Result |
 |---|---|---|
 | E1 Growth | Seed one cell, 96 steps | GPU run, 3000 steps, 48 px: training loss falls from 0.072 to the 0.02–0.05 range and the organism forms a coherent pigmented body. |
-| E2 Surgery | Grow 64, zero right half, grow 64 | Cut-half alive-cell IoU against an intact twin: 0.923 and 0.908 in two independent GPU rollouts of the 3000-step rule. A separate 600-step CPU rule, 6 seeds: trained 0.942 ± 0.008 (half-cut) and 0.943 ± 0.008 (disc); untrained 0.056 ± 0.124 and 0.117 ± 0.186. |
-| E7 Latent prediction | Frozen body encoder; predictor maps masked-half embedding to full-body embedding; fresh grown bodies each step | Train cosine 0.676, held-out cosine 0.672 on bodies never trained on, including damaged ones. The gap is ~0.004, so the ceiling is the untrained encoder, not the predictor. |
+| E2 Regeneration | Grow 64, damage, grow 64; alive-cell IoU in the damaged region against an intact twin; 10 seeds | See Table 3. Trained rule: 0.892 ± 0.017 (half-cut), 0.790 ± 0.019 (disc). Untrained rule: 0.331 ± 0.076 and 0.000 ± 0.000. |
 | E3 Sound | Same genome under silence vs. full-energy audio | Trajectories diverge (unit-tested). Synthetic beat / sweep / bloom and real WAVs all condition growth. |
 | E4 Speciation | Six genomes, one rule | Six distinct morphologies with no rule change. |
 | E5 Voice | Render 96-step trajectory to song, feed back | ~15 s stereo song; self-listening growth runs to completion. |
 | E6 Speech | Narrate every 24 steps, three personas, then wound | Post-surgery utterances contain wound predicates; recovery utterances read "healing" while the pain drive persists, then "whole". |
+| E7 Latent prediction | Frozen body encoder; a predictor maps the masked-half embedding to the full-body embedding; fresh grown bodies every step | Train cosine 0.676, held-out cosine 0.672 on bodies never trained on, including damaged ones. Gap 0.004: the ceiling is the untrained encoder, not the predictor. |
 
-The 10-seed regeneration statistics for the 3000-step GPU rule are scripted as
-notebook section 13 and `scripts/score_regeneration.py`; they are not yet
-reported here.
+**Table 3. Regeneration IoU, 3000-step rule, 48 px, GPU, 10 seeds per cell.**
+Higher is better; 1.0 means the healed region matches the intact twin exactly.
+
+| Rule | Half-cut | Disc |
+|---|---|---|
+| Trained | 0.892 ± 0.017 | 0.790 ± 0.019 |
+| Untrained | 0.331 ± 0.076 | 0.000 ± 0.000 |
+
+Two earlier single-seed rollouts of the same rule scored 0.923 and 0.908 on
+the half-cut, consistent with the 10-seed mean. Disc damage is harder than a
+half-cut: the wound is interior, so no intact edge borders it on one side. The
+untrained rule scores 0 on disc damage because it never re-enters the hole.
+Spread between seeds is small (std ≤ 0.02), so healing is a property of the
+trained rule rather than of a lucky rollout. Script: `scripts/score_regeneration.py`.
 
 ---
 
