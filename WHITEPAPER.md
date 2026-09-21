@@ -8,7 +8,7 @@
 > and conducts independent research in artificial intelligence and artificial life.
 > Correspondence: via the [Automata repository](https://github.com/AaronGrace978/Automata).
 
-*Working paper v1.0 — September 2026. Preliminary results from CPU smoke runs;
+*Working paper v1.1 — September 2026. Preliminary results from CPU smoke runs;
 full-scale evaluation is ongoing. All code, targets, and demos are open source
 in the companion repository.*
 
@@ -73,6 +73,10 @@ Our contributions:
 4. **Sonification / voice.** A deterministic state→song renderer closes the
    perception-action loop and gives the organism an audible phenotype
    (Section 3.6).
+5. **The talking NCA.** A full cognitive stack — visual module, felt instinct
+   layer (RID), language backbone, persona — with words feeding back into
+   growth. To our knowledge, the first NCA that reports its own bodily state
+   in language (Section 3.7).
 5. **Open interactive science.** A pure-JavaScript in-browser creature with
    microphone conditioning, surgery tools, genome controls, and a Google Colab
    notebook reproducing every result end to end.
@@ -179,6 +183,35 @@ pan → stereo, symmetry → vibrato. Output is stereo 22.05 kHz. The renderer's
 own output re-enters the conditioner ("self-listening" growth), demonstrating
 a closed sensorimotor loop with no additional training.
 
+### 3.7 The talking NCA: eyes, instinct, backbone, persona
+
+If sonification is the creature's voice, language is its testimony. The
+`DiatomMind` component stacks four layers above the body:
+
+- **Visual module** (`vision.py`). A small CNN encodes the 16-channel grid to
+  a 32-dim body embedding for the backbone, alongside symbolic predicates
+  (dormant/small/grown/vast, growing/shrinking/still, wounded/healing/whole,
+  symmetric/asymmetric, luminous/glowing/dim …) computed from frame
+  descriptors. Predicates are the grounding contract: the narrator may only
+  speak what the body reports.
+- **Signal layer / instinct** (`instinct.py`). The RID — Reactive Instinct
+  Drive — is six drives in $[-1,1]$ with momentum (arousal, valence, pain,
+  hunger, rhythm, calm), integrated from mass, growth, symmetry, pigment, and
+  audio energy every step. Wounds are detected by absolute *and* relative mass
+  loss, so halving a tiny creature still hurts.
+- **Language backbone** (`backbone.py`). Default: `GroundedNarrator`, an
+  offline deterministic engine composing instinct sentences with predicates —
+  incapable of hallucinating beyond the body. Optional: `HuggingFaceBackbone`,
+  a small causal LM (SmolLM2-135M) prompted with the persona preamble plus
+  felt state, with automatic fallback to the grounded narrator.
+- **Persona layer** (`persona.py`). Diction costumes — `diatom_elder` (oceanic
+  ancient), `lab_assistant` (clinical), `feral_bloom` (wild) — that restyle
+  utterances without changing their facts.
+
+The loop closes through `modulation_from_text`: keywords in the creature's own
+speech adjust its fire rate (bloom-talk quickens growth, pain-talk slows it).
+The organism sees itself, feels itself, speaks, and its speech moves its body.
+
 ---
 
 ## 4. Experiments
@@ -198,6 +231,10 @@ All protocols ship as scripts and as Colab cells (`notebooks/diatom_nca_colab.ip
   demonstrating genome-steered fate without rule changes.
 - **E5 · Voice.** A 96-step trajectory renders ~15 s of stereo song; the song's
   own spectrogram reconditions a second growth (self-listening).
+- **E6 · Speech.** `DiatomMind.run` grows while narrating every 24 steps across
+  all three personas. Acceptance test: post-surgery utterances must contain
+  wound predicates ("wounded"/"tore"), and healing utterances must show growth
+  predicates — verified in the demo transcript (`scripts/demo_mind.py`).
 
 *Preliminary smoke run (CPU, 250 steps, 32px): loss falls from ~0.35 to ~0.09
 and the trained creature grows a coherent pigmented mass. Full-scale
