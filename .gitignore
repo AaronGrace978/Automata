@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+assets/*.gif
+assets/*.png
+assets/*.pt
+web/weights.json
+.pytest_cache/
