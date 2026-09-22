@@ -59,6 +59,7 @@ python scripts/export_weights.py  # -> web/weights.json for the browser demo
 pytest -q
 
 # 7. fine-tune the diatom so its body morphs into words (RTX 5060 Ti: minutes)
+#    or on an A100 in Colab: notebooks/train_words_colab.ipynb
 python scripts/train_words.py --init assets/checkpoint.pt --steps 6000 --device cuda
 python scripts/demo_words.py --text "glass holds"        # -> assets/words.gif
 python scripts/export_weights.py --checkpoint assets/checkpoint_words.pt  # -> web/weights.js
@@ -70,6 +71,9 @@ ollama pull qwen2.5:14b
 ```
 
 ## The body speaks
+
+[![Fine-tune on an A100 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/AaronGrace978/Automata/blob/main/notebooks/train_words_colab.ipynb)
+`notebooks/train_words_colab.ipynb`: clone → fine-tune (two phases) → proof strip → export `web/weights.js` → download.
 
 ![Frustule, then GLASS, then HOLDS, then frustule again](assets/demo/words_strip.png)
 

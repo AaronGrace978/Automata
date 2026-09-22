@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "gpu": "NVIDIA RTX 5060 Ti 16GB",
   "vram_gb": 16,
   "ollama_cloud": false,

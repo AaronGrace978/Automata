@@ -8,6 +8,11 @@ Then export for the desktop creature:
 """
 from __future__ import annotations
 
+import os as _os
+import sys as _sys
+
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+
 import argparse
 import os
 
@@ -24,6 +29,7 @@ def main() -> None:
     ap.add_argument("--steps", type=int, default=3000)
     ap.add_argument("--size", type=int, default=48)
     ap.add_argument("--batch", type=int, default=8)
+    ap.add_argument("--pool", type=int, default=64, help="organisms in the replay pool")
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--rollout-min", type=int, default=24)
     ap.add_argument("--rollout-max", type=int, default=48)
@@ -38,10 +44,12 @@ def main() -> None:
         model.load_state_dict(torch.load(args.init, map_location="cpu")["state_dict"])
         print(f"starting from {args.init}")
     cfg = TrainConfig(
-        size=args.size, steps=args.steps, batch=args.batch, lr=args.lr,
+        size=args.size, steps=args.steps, batch=args.batch, pool_size=args.pool, lr=args.lr,
         rollout_min=args.rollout_min, rollout_max=args.rollout_max,
         word_prob=args.word_prob, device=args.device, log_every=args.log_every,
     )
+
+    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
 
     def on_log(it: int, loss: float, _pool) -> None:
         print(f"[{it}/{cfg.steps}] loss={loss:.5f}", flush=True)

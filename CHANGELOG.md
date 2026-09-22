@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1 — 2026-09-22
+
+- `notebooks/train_words_colab.ipynb`: fine-tune the word rule on a Colab A100 in two phases, proof strip, stability check, export and download `web/weights.js`.
+- `scripts/*.py` find `nca/` from any working directory; `train_words.py --pool` sets the replay pool size.
+
 ## 1.7.0 — 2026-09-22
 
 The body speaks.
