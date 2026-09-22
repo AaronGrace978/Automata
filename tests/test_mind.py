@@ -77,11 +77,18 @@ def test_body_and_feeling_agree_while_healing():
 
 
 def test_persona_does_not_rewrite_inside_words():
+    import random
     said = get_persona("diatom_elder").voice("Body: small, shrinking, wounded, asymmetric.")
     assert "awhole" not in said
     assert "asymmetric" in said or "unringed" in said
     # Phrases that end in punctuation must still restyle.
     assert "Specimen quiescent." in get_persona("lab_assistant").voice("I am still.")
+    # A costume must not be fed back into a shorter key.
+    ringed = get_persona("diatom_elder").voice(
+        "Body: grown, still, whole, symmetric.", random.Random(1)
+    )
+    assert "whole-ringed" in ringed
+    assert "unbroken-ringed" not in ringed
 
 
 def test_narrator_grounded_and_persona_styled():

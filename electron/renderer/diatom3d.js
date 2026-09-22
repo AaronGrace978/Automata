@@ -1,7 +1,7 @@
 // Procedural centric frustule. Two valves, a girdle, ribs, and areolae.
 // The pose comes from DiatomMorph; this file only wears it as glass.
 
-import * as THREE from "three";
+import * as THREE from "../node_modules/three/build/three.module.js";
 
 export { mount };
 

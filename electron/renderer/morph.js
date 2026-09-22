@@ -1,6 +1,8 @@
 "use strict";
 
 // Same map as nca/morph.py. tests/test_morph_parity.py checks the two.
+// Wrapped so a classic <script> does not leak names into the page.
+(function () {
 
 function clip(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
@@ -97,3 +99,4 @@ if (typeof require !== "undefined" && require.main === module) {
   const out = JSON.parse(raw).map(evalCase);
   process.stdout.write(JSON.stringify(out));
 }
+})();

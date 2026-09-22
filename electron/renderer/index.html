@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Diatom</title>
   <link rel="stylesheet" href="style.css" />
@@ -43,13 +44,6 @@
   </section>
   <script src="morph.js"></script>
   <script src="voice.js"></script>
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "../node_modules/three/build/three.module.js"
-    }
-  }
-  </script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

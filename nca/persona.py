@@ -20,13 +20,21 @@ class Persona:
 
     def voice(self, raw: str, rng: random.Random | None = None) -> str:
         text = raw
-        # Longest keys first, and only on word boundaries, so "symmetric"
-        # does not fire inside "asymmetric" (that produced "awhole-ringed").
-        for plain, styled in sorted(self.lexicon.items(), key=lambda kv: len(kv[0]), reverse=True):
-            # (?!\w) rather than a trailing \b, so a phrase that ends in
-            # punctuation ("I am still.") still matches. A leading \b keeps
-            # "symmetric" from firing inside "asymmetric".
-            text = re.sub(rf"\b{re.escape(plain)}(?!\w)", styled, text)
+        # Longest keys first, swapped for tokens, then the costumes go in.
+        # Tokens stop a replacement from feeding the next key: "symmetric"
+        # becomes "whole-ringed", and that must not then match "whole".
+        # A leading \b keeps "symmetric" from firing inside "asymmetric".
+        # (?!\w) lets a phrase that ends in punctuation ("I am still.") match.
+        ordered = sorted(self.lexicon.items(), key=lambda kv: len(kv[0]), reverse=True)
+        staged: list[tuple[str, str]] = []
+        for i, (plain, styled) in enumerate(ordered):
+            token = f"\ue000{i:03d}\ue001"
+            updated, count = re.subn(rf"\b{re.escape(plain)}(?!\w)", token, text)
+            if count:
+                text = updated
+                staged.append((token, styled))
+        for token, styled in staged:
+            text = text.replace(token, styled)
         rng = rng or random.Random()
         if self.openers and rng.random() < 0.5:
             text = f"{rng.choice(self.openers)} {text}"

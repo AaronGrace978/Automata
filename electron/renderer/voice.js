@@ -2,6 +2,8 @@
 
 // Offline voice. Diction matches nca/persona.py; the narrator matches
 // nca/backbone.py GroundedNarrator, including "I heard you."
+// Wrapped so a classic <script> does not leak names into the page.
+(function () {
 
 const PERSONAS = {
   diatom_elder: {
@@ -78,10 +80,17 @@ function mulberry32(seed) {
 function applyLexicon(text, lexicon) {
   const keys = lexicon.slice().sort((a, b) => b[0].length - a[0].length);
   let out = text;
-  for (const [plain, styled] of keys) {
+  const staged = [];
+  keys.forEach(([plain, styled], i) => {
+    const token = `\uE000${String(i).padStart(3, "0")}\uE001`;
     const escaped = plain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    out = out.replace(new RegExp(`\\b${escaped}(?!\\w)`, "g"), styled);
-  }
+    const next = out.replace(new RegExp(`\\b${escaped}(?!\\w)`, "g"), token);
+    if (next !== out) {
+      out = next;
+      staged.push([token, styled]);
+    }
+  });
+  for (const [token, styled] of staged) out = out.split(token).join(styled);
   return out;
 }
 
@@ -196,3 +205,4 @@ if (typeof require !== "undefined" && require.main === module) {
   }
   process.stdout.write("voice ok\n");
 }
+})();
