@@ -16,31 +16,10 @@ import torch
 from .backbone import GroundedNarrator
 from .instinct import InstinctState
 from .model import DiatomNCA
+from .morph import modulation_from_text, pose_from_state
 from .persona import get_persona
 from .vision import VisualEncoder, predicates
 from .voice import frame_descriptor
-
-
-def modulation_from_text(text: str) -> tuple[float, float]:
-    """Words back into growth: (fire_rate multiplier, audio-energy bias).
-
-    Deterministic keyword scan — the smallest possible language-to-body map.
-    """
-    t = text.lower()
-    fire, energy = 1.0, 0.0
-    for w in ("bloom", "spread", "more", "now", "motion", "ecstatic", "quickens"):
-        if w in t:
-            fire += 0.15
-    for w in ("rest", "still", "quiet", "sleep", "waiting", "quiescent"):
-        if w in t:
-            fire -= 0.15
-    for w in ("tore", "torn", "pain", "damage", "wounded"):
-        if w in t:
-            fire -= 0.2
-    for w in ("pulse", "beat", "drum", "sing", "tide"):
-        if w in t:
-            energy += 0.2
-    return max(0.3, min(2.0, fire)), max(0.0, min(1.0, energy))
 
 
 class DiatomMind:
@@ -51,6 +30,7 @@ class DiatomMind:
         backbone=None,
         seed: int = 0,
         device: str = "cpu",
+        fold: int = 8,
     ) -> None:
         self.device = device
         self.model = model or DiatomNCA()
@@ -59,6 +39,7 @@ class DiatomMind:
         self.instinct = InstinctState()
         self.persona = get_persona(persona)
         self.backbone = backbone or GroundedNarrator(seed=seed)
+        self.fold = fold
         self._prev_mass: float | None = None
         self.memory: list[str] = []  # past utterances; the creature remembers
 
@@ -95,6 +76,28 @@ class DiatomMind:
         self.memory.append(said)
         return said
 
+    def reply(self, user_text: str, obs: dict | None = None, damage_pulse: float = 0.0) -> dict:
+        """One turn of conversation. The pose is what the 3D frustule builds."""
+        if obs is None:
+            obs = {
+                "instinct_text": self.instinct.to_text(),
+                "predicates": [],
+                "rid": list(self.instinct.rid),
+            }
+        context = {
+            "instinct_text": obs["instinct_text"],
+            "predicates": obs.get("predicates") or [],
+            "rid": obs["rid"],
+            "persona_preamble": self.persona.preamble,
+            "memory": self.memory[-3:],
+            "user_text": user_text,
+        }
+        raw = self.backbone.speak(context)
+        said = self.persona.voice(raw)
+        self.memory.append(said)
+        pose = pose_from_state(obs["rid"], said, user_text, self.fold, damage_pulse)
+        return {"said": said, "pose": pose, "fire": pose["fire"], "energy": pose["energy"]}
+
     def run(self, steps: int = 96, size: int = 48, speak_every: int = 24, audio=None) -> dict:
         """Grow, feel, and speak. Returns transcript + trajectory + final state."""
         self.model.eval()
@@ -111,8 +114,9 @@ class DiatomMind:
                 obs = self.observe(x, audio_energy=eng)
                 if (t + 1) % speak_every == 0:
                     said = self.utter(obs)
-                    transcript.append({"step": t + 1, "said": said, "rid": obs["rid"]})
-                    fire_mult, energy_bias = modulation_from_text(said)
+                    pose = pose_from_state(obs["rid"], said, "", self.fold, 0.0)
+                    transcript.append({"step": t + 1, "said": said, "rid": obs["rid"], "pose": pose})
+                    fire_mult, energy_bias = pose["fire"], pose["energy"]
                 traj.append(x.clone())
         return {
             "transcript": transcript,

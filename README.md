@@ -28,7 +28,8 @@ local computation.
 | **Extra cell channels (16)** | `0:2` RGB pigment · `3` alpha/maturity · `4:7` DNA genome · `8:10` morphogen memory · `11` AUDIO sense · `12:15` hidden/silica state | fix DNA per organism to steer fate; read channel 11 as the cell's memory of sound |
 | **Live in the browser** | `web/demo.html` — pure-JS NCA, mic + synth conditioning, cut/genome/symmetry controls | open the file, no server; `scripts/export_weights.py` drops trained weights in |
 | **It talks** | `nca/voice.py` — sonification: growth → stereo pentatonic song (mass→pitch, pigment→chord, growth→loudness, position→pan) | `python scripts/demo_voice.py` → creature sings, then grows under its own song |
-| **It speaks** | `nca/mind.py` — the talking-NCA stack: visual module → instinct (RID felt layer) → language backbone (grounded narrator or SmolLM2) → persona; words feed back into growth | `python scripts/demo_mind.py --persona feral_bloom` → converse with the creature |
+| **It speaks** | `nca/mind.py` — the talking-NCA stack: visual module → instinct (RID felt layer) → language backbone (grounded narrator, local Qwen/Phi, or SmolLM2) → persona; words feed back into growth | `python scripts/demo_mind.py --persona feral_bloom` → converse with the creature |
+| **You can talk to a 3D frustule** | `electron/` — Electron + Three.js pillbox (valves, girdle, ribs, areolae) morphed by the same pose as `nca/morph.py`. Speech is local **Qwen2.5-14B-Instruct Q4_K_M** (Apache-2.0). Ollama Cloud is refused. | `cd electron && npm install && npm start` |
 
 ## Quickstart
 
@@ -55,6 +56,11 @@ python scripts/export_weights.py  # -> web/weights.json for the browser demo
 
 # 6. run the tests
 pytest -q
+
+# 7. desktop creature (Electron). The 3D frustule morphs while you talk.
+cd electron && npm install && npm start
+#    local model, on an RTX 5060 Ti 16GB:
+ollama pull qwen2.5:14b
 ```
 
 ## Touch it: the browser creature
@@ -102,13 +108,24 @@ and circle/half damage on half of all batches — regeneration is *trained in*.
 Same rule + different genome → different frustule. Fix the genome to clone,
 mutate it to evolve, interpolate two genomes to morph one diatom into another.
 
+## Commercial runtime (locked)
+
+The desktop creature runs **on the machine that draws it**. Decision, in full in [`COMMERCIAL.md`](COMMERCIAL.md):
+
+- **Model:** Qwen2.5-14B-Instruct, Q4_K_M (`ollama pull qwen2.5:14b`). About 9 GB. Apache-2.0, so it can ship in a product. It is 14.7B parameters, 13.1B of them outside the embedding — the 13B-class model that fits a 16 GB card. FP16 of that class is about 26 GB and does not.
+- **Card:** RTX 5060 Ti 16 GB. Context is capped at 4096 tokens so the cache stays inside the card next to the 3D view.
+- **Also allowed:** `qwen2.5:7b` (Apache-2.0), `phi4` and `phi4-mini` (MIT). Set `DIATOM_MODEL`. Anything else is refused, including Llama (monthly-user cap) and the Qwen 3B / 72B sizes (Qwen license, not Apache-2.0).
+- **Ollama Cloud: no.** Prompts would leave the machine, and the hosted catalog mixes licenses. The app refuses a non-loopback host. Local Ollama is MIT. If it is not installed, the frustule still morphs and the grounded narrator still answers.
+
+Say **bloom** and the girdle rises. Say **rest** and it settles. **Cut** takes a wedge out of the valve; the wedge heals.
+
 ## Fine-tune road (where to go next)
 
 - **Bigger creatures**: `--size 64/96`, `hidden 192`, longer rollouts; add a Laplacian kernel to perception.
 - **Real diatom data**: swap `batch_targets()` for SEM images (e.g. neuronal diatom datasets); keep the pool + damage loop unchanged.
 - **Richer audio**: beat-phase waves, chroma → palette rotation, onset → pore bursts; condition the *genome* on a full track for "song → species".
 - **Evo search**: mutate genomes / rule weights with CMA-ES against symmetry + pore-regularity fitness; keep the prettiest frustules.
-- **3D frustules**: lift the grid to 3D convolutions — girdle bands become real cylinders.
+- **3D frustules**: the desktop app already wears the felt state as a glass pillbox (`electron/`). A learned 3D cellular automaton — real girdle cylinders grown by a local rule — is still open.
 
 ## Layout
 
@@ -118,9 +135,12 @@ nca/diatom.py     procedural diatom targets (centric + pennate)
 nca/audio.py      wav/synth -> 8-dim conditioning vectors
 nca/train.py      pool training + regeneration + audio augmentation
 nca/utils.py      visualisation (GIF/grid) + damage probes
-scripts/          train / grow / regenerate / audio / export_weights
+nca/morph.py      pose that drives the 3D frustule (ported in electron/renderer/morph.js)
+nca/runtime.json  commercial model lock: local Qwen2.5-14B Q4, no Ollama Cloud
+scripts/          train / grow / regenerate / audio / voice / mind / talk
+electron/         desktop app: 3D diatom you can speak to
 web/demo.html     interactive browser creature (mic + synth + surgery)
-tests/test_nca.py smoke tests for rule, targets, audio, training step
+tests/            rule, targets, audio, voice, mind, runtime lock, pose parity
 assets/           checkpoints + generated GIFs (gitignored outputs)
 ```
 
@@ -156,7 +176,7 @@ For attribution in academic or professional contexts, please cite this work as:
   year      = {2026},
   month     = {September},
   url       = {https://github.com/AaronGrace978/Automata},
-  note      = {Working paper v1.5}
+  note      = {Working paper v1.6}
 }
 ```
 
