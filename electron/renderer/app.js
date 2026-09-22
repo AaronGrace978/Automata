@@ -10,8 +10,8 @@ const glyph = window.DiatomGlyph;
 const { DiatomBody } = window.DiatomNCA;
 
 const SIZE = 48;
-const MORPH_STEPS = 40;
-const HOLD_STEPS = 28;
+const MORPH_STEPS = 48;
+const HOLD_STEPS = 30;
 const REST_STEPS = 30;
 
 const canvas = document.getElementById("view");
@@ -244,10 +244,15 @@ requestAnimationFrame(tick);
 refreshStatus().then(async () => {
   if (smoke) {
     // Let the frustule grow, then speak, then wait for the body to be a word.
-    await new Promise((r) => setTimeout(r, 1800));
+    await new Promise((r) => setTimeout(r, 3500));
     const reply = await talk("hello");
-    const wait = (MORPH_STEPS + HOLD_STEPS * 0.6) / stepsPerFrame * 17 + 300;
-    await new Promise((r) => setTimeout(r, wait));
+    // Capture once the body has finished becoming its first word.
+    const started = Date.now();
+    while (Date.now() - started < 20000) {
+      if (current && current.left <= HOLD_STEPS * 0.5) break;
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    await new Promise((r) => setTimeout(r, 120));
     window.diatom.smokeReady({ reply, word: wordEl.textContent, trained: body.trained });
     return;
   }

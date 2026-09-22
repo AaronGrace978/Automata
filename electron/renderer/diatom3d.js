@@ -39,10 +39,10 @@ const FRAG = /* glsl */ `
   varying vec3 vColor;
   float height(vec2 uv) { return clamp(texture2D(body, uv).a, 0.0, 1.0) * lift; }
   void main() {
-    if (vAlpha < 0.1) discard;
+    if (vAlpha < 0.12) discard;
     float hx = height(vUv + vec2(texel, 0.0)) - height(vUv - vec2(texel, 0.0));
     float hy = height(vUv + vec2(0.0, texel)) - height(vUv - vec2(0.0, texel));
-    vec3 n = normalize(vec3(-hx * 8.0, -hy * 8.0, 1.0));
+    vec3 n = normalize(vec3(-hx * 5.0, -hy * 5.0, 1.0));
     float diff = max(dot(n, normalize(lightDir)), 0.0);
     vec3 viewDir = normalize(cameraPosition - vPos);
     float spec = pow(max(dot(reflect(-normalize(lightDir), n), viewDir), 0.0), 26.0);
@@ -58,8 +58,9 @@ function mount(canvas, body) {
   const size = body.size;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 40);
-  camera.position.set(0, 1.35, 2.6);
-  camera.lookAt(0, 0, 0);
+  // Steep enough that a word on the plate reads as a word.
+  camera.position.set(0, 2.4, 2.25);
+  camera.lookAt(0, 0.05, 0);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setClearColor(0x070b10, 1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -77,7 +78,7 @@ function mount(canvas, body) {
     side: THREE.DoubleSide,
     uniforms: {
       body: { value: texture },
-      lift: { value: 0.22 },
+      lift: { value: 0.16 },
       texel: { value: 1 / size },
       lightDir: { value: new THREE.Vector3(0.6, 0.5, 1.0) },
       rimColor: { value: new THREE.Color(0x58c4dc) },
@@ -136,10 +137,33 @@ function mount(canvas, body) {
     drag = null;
   });
 
+  const smoothA = new Float32Array(size * size);
   function upload() {
     const n = size * size;
     const st = body.state;
     const data = texture.image.data;
+    // Silica thickness is a 3x3 mean of alpha, so the stochastic fire
+    // pattern reads as relief on glass rather than static.
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        let sum = 0;
+        let cnt = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = y + dy;
+          if (yy < 0 || yy >= size) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx;
+            if (xx < 0 || xx >= size) continue;
+            sum += Math.max(0, Math.min(1, st[3 * n + yy * size + xx]));
+            cnt += 1;
+          }
+        }
+        // Peaks are clipped to the neighbourhood mean; gaps between letters
+        // stay gaps, because a cell can only be as thick as it is.
+        const raw = Math.max(0, Math.min(1, st[3 * n + y * size + x]));
+        smoothA[y * size + x] = Math.min(raw, (sum / cnt) * 1.1);
+      }
+    }
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         // Texture rows run bottom-up; the grid runs top-down.
@@ -148,7 +172,7 @@ function mount(canvas, body) {
         data[dst] = st[src];
         data[dst + 1] = st[n + src];
         data[dst + 2] = st[2 * n + src];
-        data[dst + 3] = st[3 * n + src];
+        data[dst + 3] = smoothA[src];
       }
     }
     texture.needsUpdate = true;
@@ -164,10 +188,15 @@ function mount(canvas, body) {
   }
 
   let t = 0;
+  let phase = 0;
   function frame() {
     t += 1;
     upload();
-    if (!drag) yaw += spin;
+    // The plate sways instead of spinning, so the words stay upright.
+    if (!drag) {
+      phase += spin;
+      yaw = 0.22 * Math.sin(phase);
+    }
     group.rotation.y = yaw;
     group.rotation.x = pitch;
     dish.rotation.z = yaw;
