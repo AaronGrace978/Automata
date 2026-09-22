@@ -30,6 +30,7 @@ local computation.
 | **It talks** | `nca/voice.py` — sonification: growth → stereo pentatonic song (mass→pitch, pigment→chord, growth→loudness, position→pan) | `python scripts/demo_voice.py` → creature sings, then grows under its own song |
 | **It speaks** | `nca/mind.py` — the talking-NCA stack: visual module → instinct (RID felt layer) → language backbone (grounded narrator, local Qwen/Phi, or SmolLM2) → persona; words feed back into growth | `python scripts/demo_mind.py --persona feral_bloom` → converse with the creature |
 | **The body becomes the words** | `nca/glyph.py` + `nca/train.py::train_morph` — a word is rendered into the silica TEMPLATE channel and the rule is fine-tuned to grow the frustule into the letters, hold, and return to glass when the template clears | `python scripts/train_words.py --device cuda` → `python scripts/demo_words.py --text "glass holds"` |
+| **The body becomes shapes** | `nca/shapes.py` — say *cloud* and it becomes a cloud, *dino* and it becomes a T-rex. 1,379 silhouettes and 2,248 names from Noto Color Emoji (OFL-1.1); for anything else, the local model picks the emoji. The same template channel, the same rule. | `python scripts/demo_shapes.py --say cloud dino "become a dragon"` |
 | **Talk to it on the desktop** | `electron/` — the real 48×48 automaton runs in the window (`renderer/nca.js`, cell-for-cell with PyTorch) and its grid is the 3D glass. Replies come from local **Qwen2.5-14B-Instruct Q4_K_M** (Apache-2.0); the cells grow into each word. Ollama Cloud is refused. | `cd electron && npm install && npm start` |
 
 ## Quickstart
@@ -88,6 +89,22 @@ frustule→word, word→word, and word→frustule. The desktop window runs that 
 in JavaScript, cell for cell with PyTorch (`tests/test_body_parity.py`), and
 the grid's alpha is the height of the glass.
 
+## The body takes shape
+
+![One body: frustule, cloud, T-rex, dragon, cat, rocket, frustule](assets/demo/shapes_strip.png)
+
+Say **cloud**, **dino**, **become a dragon**, **show me an octopus**, and the
+same cells grow into that outline and hold it until you speak again. The
+template channel takes any mask, and the word-trained rule followed solid
+silhouettes on the first try, so shapes are a vocabulary, not a new model:
+`nca/shapes.py` names every emoji Noto Color Emoji draws (Unicode names plus
+aliases like *dino* → T-rex, *kitty* → cat), and `scripts/build_shapes.py`
+bakes the silhouettes into the app (`electron/renderer/shapes.data.js`). A
+word the table doesn't know ("become a narwhal-shaped kite") goes to the local
+model, which answers with one emoji; the body takes that outline. Fine-tuning
+with `--shape-prob` (on by default in the Colab notebook) sharpens edges and
+makes the frustule's leftover lobes withdraw faster.
+
 ## Touch it: the browser creature
 
 ![Trained creature grown in the browser, then cut in half](assets/demo/browser_grown.png)
@@ -142,7 +159,7 @@ The desktop creature runs **on the machine that draws it**. Decision, in full in
 - **Also allowed:** `qwen2.5:7b` (Apache-2.0), `phi4` and `phi4-mini` (MIT). Set `DIATOM_MODEL`. Anything else is refused, including Llama (monthly-user cap) and the Qwen 3B / 72B sizes (Qwen license, not Apache-2.0).
 - **Ollama Cloud: no.** Prompts would leave the machine, and the hosted catalog mixes licenses. The app refuses a non-loopback host. Local Ollama is MIT. If it is not installed, the frustule still morphs and the grounded narrator still answers.
 
-Say something and the reply is spelled by the cells. **Cut** removes half the body; the rule regrows it.
+Say something and the reply is spelled by the cells. Name a thing (**Cloud**, **Dino**, **Dragon**, or type your own) and the body becomes it; **Let go** returns it to glass. **Cut** removes half the body; the rule regrows it.
 
 ## Fine-tune road (where to go next)
 
@@ -162,6 +179,7 @@ nca/audio.py      wav/synth -> 8-dim conditioning vectors
 nca/train.py      pool training + regeneration + audio augmentation
 nca/utils.py      visualisation (GIF/grid) + damage probes
 nca/glyph.py      words -> silica templates + RGBA targets (ported in electron/renderer/glyph.js)
+nca/shapes.py     names -> emoji silhouettes as templates (baked into electron/renderer/shapes.data.js)
 nca/morph.py      felt state -> fire rate / energy (ported in electron/renderer/morph.js)
 nca/runtime.json  commercial model lock: local Qwen2.5-14B Q4, no Ollama Cloud
 scripts/          train / train_words / grow / regenerate / audio / voice / mind / talk / words
@@ -203,7 +221,7 @@ For attribution in academic or professional contexts, please cite this work as:
   year      = {2026},
   month     = {September},
   url       = {https://github.com/AaronGrace978/Automata},
-  note      = {Working paper v1.7}
+  note      = {Working paper v1.8}
 }
 ```
 

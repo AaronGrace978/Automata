@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 — 2026-09-22
+
+The body takes shape.
+
+- Say *cloud*, *dino*, *become a dragon*: the same cells grow into that outline and hold it until you speak again (`nca/shapes.py`, `electron/renderer/shapes.js`). 1,379 Noto Color Emoji silhouettes (OFL-1.1) and 2,248 names, baked by `scripts/build_shapes.py`. Words the table doesn't know go to the local model, which picks the emoji.
+- `train_morph --shape-prob` adds silhouette tasks; the Colab notebook trains words and shapes together.
+- `DiatomMind.reply` returns the shape; `DiatomMind.become` grows it. `scripts/demo_shapes.py` writes the proof strip.
+- App: Cloud / Dino / Dragon / Let go buttons. Seeded a flaky voice test.
+
 ## 1.7.1 — 2026-09-22
 
 - `notebooks/train_words_colab.ipynb`: fine-tune the word rule on a Colab A100 in two phases, proof strip, stability check, export and download `web/weights.js`.

@@ -4,7 +4,7 @@
 *Independent Researcher. M.Ed., Higher Education Administration, University of Massachusetts Lowell.*
 Correspondence: [github.com/AaronGrace978/Automata](https://github.com/AaronGrace978/Automata)
 
-*Working paper v1.7, September 2026. All reported numbers come from one
+*Working paper v1.8, September 2026. All reported numbers come from one
 3000-step GPU rule at 48 px; regeneration is scored over 10 seeds against an
 untrained baseline. All code, targets, and demos are open source (MIT).*
 
@@ -278,6 +278,21 @@ the frustule returns. The felt state (RID) is computed from the same grid, and
 the reply's vocabulary sets the fire rate and the audio energy the rule
 receives. Cut removes half the grid; the rule regrows it.
 
+**Shapes.** The template is any mask, not only letters. Tested zero-shot, the
+word-trained rule grew into solid silhouettes it had never seen (a cloud, a
+T-rex, a cat), which says the fine-tune learned to follow the template rather
+than to memorise glyphs. Version 1.8 exposes that as an open vocabulary:
+`nca/shapes.py` indexes the 1,379 single-codepoint emoji drawn by Noto Color
+Emoji under their Unicode names and a small alias table (2,248 keywords), a
+request grammar picks the noun out of "become a …", "turn into …", or a bare
+name, and each glyph's alpha, fitted to 42 of the 48 cells, is written into
+channel 10 and held until the person speaks again. When the table has no
+entry, the local language model is asked for the one emoji whose outline is
+closest, and the answer is accepted only if it is in the atlas. Shape tasks
+join `train_morph` (`shape_prob`), drawn from every emoji at three scales.
+The body is still one organism: consecutive shapes are transitions of the same
+cells, never a reset (Figure: `assets/demo/shapes_strip.png`).
+
 The language model is local. The locked default is **Qwen2.5-14B-Instruct** at
 **Q4_K_M** (`ollama pull qwen2.5:14b`), about 9 GB of weights. A 13B-class
 network in FP16 is about 26 GB and does not fit a 16 GB RTX 5060 Ti. This
@@ -320,7 +335,8 @@ assistance under the author's direction.
 
 ```bash
 pip install -r requirements.txt
-pytest -q                                              # 36 tests
+pytest -q                                              # 42 tests
+python scripts/demo_shapes.py --say cloud dino        # the body takes shape (§7)
 python scripts/train_words.py --device cuda           # body -> words fine-tune (§7)
 python scripts/demo_words.py --text "glass holds"     # assets/words.gif
 cd electron && npm install && npm start               # the automaton, as glass, local model

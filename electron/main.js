@@ -146,6 +146,37 @@ ipcMain.handle("diatom:chat", async (_event, payload) => {
   }
 });
 
+// A concept the silhouette table does not know: ask the local model for the
+// one emoji that looks most like it. The renderer checks the answer is a
+// shape it has.
+ipcMain.handle("diatom:emoji", async (_event, concept) => {
+  const clean = String(concept || "").replace(/[^A-Za-z \-]/g, "").trim().slice(0, 40);
+  if (!clean) return { ok: false, error: "bad concept" };
+  let model;
+  try {
+    const host = resolveHost();
+    model = resolveModel();
+    const data = await requestJson(
+      host,
+      "POST",
+      "/api/chat",
+      {
+        model,
+        messages: [
+          { role: "system", content: "You pick emoji. Reply with exactly one emoji and nothing else." },
+          { role: "user", content: `Which single emoji has the outline most like: ${clean}?` },
+        ],
+        stream: false,
+        options: { temperature: 0, num_predict: 8, num_ctx: 512 },
+      },
+      smoke ? 4000 : 30000
+    );
+    return { ok: true, text: ((data.message || {}).content || "").trim(), model };
+  } catch (err) {
+    return { ok: false, error: err.message, model: model || lock.default_model };
+  }
+});
+
 let win;
 
 function createWindow() {
@@ -165,7 +196,7 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, "renderer", "index.html"), {
-    query: smoke ? { smoke: "1" } : {},
+    query: smoke ? { smoke: "1", say: process.env.DIATOM_SMOKE_SAY || "hello" } : {},
   });
   if (smoke) {
     win.webContents.on("console-message", (_event, _level, message) => {

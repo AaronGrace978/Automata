@@ -34,6 +34,8 @@ def main() -> None:
     ap.add_argument("--rollout-min", type=int, default=24)
     ap.add_argument("--rollout-max", type=int, default=48)
     ap.add_argument("--word-prob", type=float, default=0.5)
+    ap.add_argument("--shape-prob", type=float, default=0.0,
+                    help="share of emoji-silhouette tasks; needs fonts-noto-color-emoji")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--log-every", type=int, default=50)
     ap.add_argument("--save-every", type=int, default=200)
@@ -46,7 +48,7 @@ def main() -> None:
     cfg = TrainConfig(
         size=args.size, steps=args.steps, batch=args.batch, pool_size=args.pool, lr=args.lr,
         rollout_min=args.rollout_min, rollout_max=args.rollout_max,
-        word_prob=args.word_prob, device=args.device, log_every=args.log_every,
+        word_prob=args.word_prob, shape_prob=args.shape_prob, device=args.device, log_every=args.log_every,
     )
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)

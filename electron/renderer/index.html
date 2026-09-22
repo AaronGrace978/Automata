@@ -24,14 +24,16 @@
     <div id="log" aria-live="polite"></div>
     <form id="composer">
       <label class="sr" for="say">Speak to the diatom</label>
-      <input id="say" type="text" autocomplete="off" placeholder="Speak to the glass" />
+      <input id="say" type="text" autocomplete="off" placeholder="Speak to the glass, or name a shape: “become a cloud”, “dino”" />
       <button type="submit">Speak</button>
     </form>
     <div id="tools">
       <button type="button" id="cut">Cut</button>
       <button type="button" id="reseed">New genome</button>
-      <button type="button" data-say="Bloom now">Bloom</button>
-      <button type="button" data-say="Rest. Be still.">Rest</button>
+      <button type="button" data-say="Become a cloud">Cloud</button>
+      <button type="button" data-say="Dino">Dino</button>
+      <button type="button" data-say="Turn into a dragon">Dragon</button>
+      <button type="button" id="letgo">Let go</button>
       <button type="button" data-say="Sing with the tide.">Tide</button>
       <label>Speed
         <input id="speed" type="range" min="1" max="5" value="2" />
@@ -51,6 +53,8 @@
   <script src="voice.js"></script>
   <script src="glyph.js"></script>
   <script src="nca.js"></script>
+  <script src="shapes.data.js"></script>
+  <script src="shapes.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

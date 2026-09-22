@@ -17,6 +17,8 @@ def test_frame_descriptor_sane():
 
 
 def test_song_is_stereo_music():
+    # Seeded: an unlucky random rule can grow dead centre, and a centred body pans to both ears equally.
+    torch.manual_seed(1)
     m = DiatomNCA(num_channels=16, hidden_dim=16)
     with torch.no_grad():
         traj = m.grow(40, size=24)

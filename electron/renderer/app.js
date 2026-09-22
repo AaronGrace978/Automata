@@ -7,6 +7,7 @@ import { mount } from "./diatom3d.js";
 const morph = window.DiatomMorph;
 const voice = window.DiatomVoice;
 const glyph = window.DiatomGlyph;
+const shapes = window.DiatomShapes;
 const { DiatomBody } = window.DiatomNCA;
 
 const SIZE = 48;
@@ -23,7 +24,9 @@ const lockline = document.getElementById("lockline");
 const personaEl = document.getElementById("persona");
 const meters = document.getElementById("meters");
 const wordEl = document.getElementById("word");
-const smoke = new URLSearchParams(location.search).has("smoke");
+const params = new URLSearchParams(location.search);
+const smoke = params.has("smoke");
+const shapesReady = shapes.load();
 
 const body = new DiatomBody(SIZE, window.DIATOM_WEIGHTS || null);
 const view = mount(canvas, body);
@@ -54,7 +57,9 @@ function paintMeters() {
     return `<div class="meter"><span>${name}</span><div class="bar"><div style="width:${Math.round(value * 100)}%"></div></div></div>`;
   });
   rows.push(
-    `<p class="fold">${body.trained ? "trained rule" : "untrained soup"} · ${SIZE}×${SIZE} cells · ${queue.length + (current ? 1 : 0)} words waiting</p>`
+    `<p class="fold">${body.trained ? "trained rule" : "untrained soup"} · ${SIZE}×${SIZE} cells · ${shapes.count} shapes · ${
+      current && current.shape ? `holding ${current.word.toLowerCase()}` : `${queue.length + (current ? 1 : 0)} words waiting`
+    }</p>`
   );
   meters.innerHTML = rows.join("");
 }
@@ -99,6 +104,41 @@ async function refreshStatus() {
 // Words become templates. The rule grows the body into each one.
 function say(text) {
   for (const word of glyph.wordsOf(text)) queue.push(word);
+}
+
+// A shape is held until the next thing is said.
+function becomeShape(tile) {
+  queue = [];
+  restLeft = 0;
+  body.setTemplate(shapes.mask(tile, SIZE));
+  const { emoji, label } = shapes.info(tile);
+  current = { word: label, left: Infinity, shape: true };
+  wordEl.textContent = `${emoji}  ${label.toUpperCase()}`;
+  return label;
+}
+
+function letGo() {
+  queue = [];
+  current = null;
+  restLeft = 0;
+  body.setTemplate(null);
+  wordEl.textContent = "";
+}
+
+// Local table first; for an outright request it does not know, the local
+// model names an emoji and the body takes that outline.
+async function resolveShape(text) {
+  await shapesReady;
+  const want = shapes.find(text);
+  if (want.tile != null) return want.tile;
+  if (!want.explicit || !want.key) return null;
+  try {
+    const res = await window.diatom.emoji(want.key);
+    if (res && res.ok) return shapes.tileForEmoji(res.text);
+  } catch (err) {
+    // No model: fall through to spelling the reply.
+  }
+  return null;
 }
 
 function advanceWords() {
@@ -159,12 +199,16 @@ async function talk(userText) {
   busy = true;
   input.disabled = true;
   pushLine("you", text);
+  if (current && current.shape) letGo();
+  const tile = await resolveShape(text);
+  const shapeLabel = tile != null ? becomeShape(tile) : null;
   const [fire, energy] = morph.modulationFromText(text);
   body.fireRate = Math.max(0.2, Math.min(0.95, 0.5 * fire));
   body.audio[0] = Math.max(body.audio[0], energy);
   const { desc, growth, relDrop } = feel();
   const instinct = voice.instinctText(rid);
   const preds = voice.predicates(desc, growth, woundedRecently > 0 ? 0.5 : relDrop, rid[2]);
+  if (shapeLabel) preds.unshift(`becoming ${shapeLabel.toLowerCase()}`);
   let said = voice.speakLocal({
     persona, instinct, predicates: preds, userText: text,
     seed: (Date.now() ^ (text.length * 997)) >>> 0,
@@ -185,7 +229,7 @@ async function talk(userText) {
   memory.push(said);
   if (memory.length > 6) memory = memory.slice(-6);
   pushLine("glass", said);
-  say(said);
+  if (!shapeLabel) say(said);
   paintMeters();
   busy = false;
   input.disabled = false;
@@ -210,6 +254,10 @@ document.getElementById("cut").addEventListener("click", () => {
   rid = morph.stepDrives(rid, desc, -0.08, 0, 0, 0.8);
   prevMass = desc.mass;
   talk("A blade just took half of you.");
+});
+
+document.getElementById("letgo").addEventListener("click", () => {
+  letGo();
 });
 
 document.getElementById("reseed").addEventListener("click", () => {
@@ -245,11 +293,13 @@ refreshStatus().then(async () => {
   if (smoke) {
     // Let the frustule grow, then speak, then wait for the body to be a word.
     await new Promise((r) => setTimeout(r, 3500));
-    const reply = await talk("hello");
-    // Capture once the body has finished becoming its first word.
+    const reply = await talk(params.get("say") || "hello");
+    // Capture once the body has finished becoming its first word or shape.
     const started = Date.now();
+    let shapeFrames = 0;
     while (Date.now() - started < 20000) {
-      if (current && current.left <= HOLD_STEPS * 0.5) break;
+      if (current && current.shape && ++shapeFrames * 60 * 0.06 * stepsPerFrame > MORPH_STEPS + HOLD_STEPS) break;
+      if (current && !current.shape && current.left <= HOLD_STEPS * 0.5) break;
       await new Promise((r) => setTimeout(r, 60));
     }
     await new Promise((r) => setTimeout(r, 120));

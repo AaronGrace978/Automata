@@ -46,7 +46,11 @@ The body still grows, the grounded narrator still answers from the felt state, a
 
 ## The diatom's own weights
 
-The cellular automaton (`assets/checkpoint.pt`, `assets/checkpoint_words.pt`, `web/weights.js`) is trained in this repository on procedural targets and rendered words. Those weights are yours under the MIT license, with no third-party model license attached. The fonts used to render training words (DejaVu Sans Bold) are under the DejaVu license, which permits this use; the weights do not embed the font.
+The cellular automaton (`assets/checkpoint.pt`, `assets/checkpoint_words.pt`, `web/weights.js`) is trained in this repository on procedural targets, rendered words and emoji silhouettes. Those weights are yours under the MIT license, with no third-party model license attached. The fonts used to render training words (DejaVu Sans Bold) are under the DejaVu license, which permits this use; the weights do not embed the font.
+
+## Shapes
+
+The shape silhouettes in `electron/renderer/shapes.data.js` are renderings of Noto Color Emoji, which Google publishes under the SIL Open Font License 1.1. The OFL allows the font, and output made with it, to be bundled and sold with software. The atlas is 48×48 alpha masks, not a font, and the app ships no font file. Keep the attribution in `shapes.data.js` ("Noto Color Emoji (SIL OFL-1.1)") and in this file. No image model, web service, or third-party API is involved: for unknown words, the same local Apache-2.0 model that speaks picks the emoji.
 
 ## Notices a shipped product still has to carry
 

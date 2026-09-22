@@ -36,6 +36,7 @@ class TrainConfig:
     # Word morphing (train_morph): share of tasks that are words, and how
     # often a sampled organism is handed a new task while keeping its body.
     word_prob: float = 0.5
+    shape_prob: float = 0.0  # share of emoji-silhouette tasks (nca/shapes.py)
     retarget_prob: float = 0.35
 
 
@@ -105,21 +106,54 @@ def train(model, cfg: TrainConfig, target_seed: int = 0, on_log=None):
 
 
 # -- words: the body morphs into text and back ------------------------------
+_SHAPES: dict = {}
+
+
+def _random_shape(size: int, rng):
+    """A random emoji silhouette, fitted at a jittered scale. Masks are cached."""
+    import numpy as np
+
+    from .glyph import paint_word
+    from .shapes import emoji_font, font_codepoints, render_shape
+
+    if "cps" not in _SHAPES:
+        font = emoji_font()
+        if font is None:
+            raise FileNotFoundError("shape tasks need an emoji font: apt install fonts-noto-color-emoji")
+        _SHAPES["cps"], _SHAPES["font"], _SHAPES["masks"] = font_codepoints(font), font, {}
+    cp = rng.choice(_SHAPES["cps"])
+    fit = rng.choice([34, 38, 42]) * size // 48
+    key = (cp, fit, size)
+    if key not in _SHAPES["masks"]:
+        _SHAPES["masks"][key] = render_shape(cp, size=size, font_path=_SHAPES["font"], fit=fit)
+    mask = _SHAPES["masks"][key]
+    if (mask > 0.5).sum() < 20:
+        mask = np.zeros_like(mask)
+    return paint_word(mask), mask
+
+
 def _new_tasks(n: int, cfg: TrainConfig, rng, target_seed: int):
     """n fresh tasks: (targets (n,C,H,W), templates (n,H,W)). Word or diatom."""
     from .glyph import batch_word_targets, random_word
 
     targets = torch.zeros(n, cfg.num_channels, cfg.size, cfg.size)
     templates = torch.zeros(n, cfg.size, cfg.size)
-    is_word = [rng.random() < cfg.word_prob for _ in range(n)]
-    words = [random_word(rng) for w in is_word if w]
+    kinds = []
+    for _ in range(n):
+        r = rng.random()
+        kinds.append("word" if r < cfg.word_prob else "shape" if r < cfg.word_prob + cfg.shape_prob else "frustule")
+    words = [random_word(rng) for k in kinds if k == "word"]
     if words:
         w_states, w_masks = batch_word_targets(words, size=cfg.size, num_channels=cfg.num_channels, rng=rng)
     wi = 0
-    for i, w in enumerate(is_word):
-        if w:
+    for i, kind in enumerate(kinds):
+        if kind == "word":
             targets[i], templates[i] = w_states[wi], w_masks[wi]
             wi += 1
+        elif kind == "shape":
+            rgba, mask = _random_shape(cfg.size, rng)
+            targets[i, :4] = torch.from_numpy(rgba).permute(2, 0, 1)
+            templates[i] = torch.from_numpy(mask)
         else:
             targets[i] = batch_targets(1, size=cfg.size, seed=target_seed + rng.randrange(1 << 20),
                                        num_channels=cfg.num_channels)[0]
@@ -167,8 +201,9 @@ def morph_step(model, opt, pool, targets, templates, cfg: TrainConfig, rng) -> f
 def train_morph(model, cfg: TrainConfig, seed: int = 0, on_log=None):
     """Fine-tune a diatom rule so its body becomes words along a template.
 
-    Start from a grown frustule (``assets/checkpoint.pt``). Half the tasks
-    are frustules with an empty template, so the old behaviour is kept.
+    Start from a grown frustule (``assets/checkpoint.pt``). Tasks are words
+    (``word_prob``), emoji silhouettes (``shape_prob``), and frustules with an
+    empty template for the rest, so the old behaviour is kept.
     """
     import random
 

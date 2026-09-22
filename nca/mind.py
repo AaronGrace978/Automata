@@ -85,9 +85,21 @@ class DiatomMind:
                 "predicates": [],
                 "rid": list(self.instinct.rid),
             }
+        shape = None
+        try:
+            from .shapes import default_index, find_shape, label
+
+            _, cp, _ = find_shape(user_text, default_index())
+            if cp is not None:
+                shape = {"codepoint": cp, "emoji": chr(cp), "label": label(cp)}
+        except ImportError:
+            pass
+        predicates = list(obs.get("predicates") or [])
+        if shape:
+            predicates.insert(0, f"becoming {shape['label'].lower()}")
         context = {
             "instinct_text": obs["instinct_text"],
-            "predicates": obs.get("predicates") or [],
+            "predicates": predicates,
             "rid": obs["rid"],
             "persona_preamble": self.persona.preamble,
             "memory": self.memory[-3:],
@@ -99,11 +111,27 @@ class DiatomMind:
         pose = pose_from_state(obs["rid"], said, user_text, self.fold, damage_pulse)
         return {
             "said": said,
-            "words": words_of(said),
+            # A named shape is held; otherwise the body spells the reply.
+            "shape": shape,
+            "words": [] if shape else words_of(said),
             "pose": pose,
             "fire": pose["fire"],
             "energy": pose["energy"],
         }
+
+    def become(self, x: torch.Tensor, codepoint: int, steps: int = 80, fire_rate: float = 0.5,
+               size: int | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+        """Grow the body into an emoji silhouette. Returns (trajectory, final)."""
+        from .shapes import render_shape
+
+        size = size or x.shape[-1]
+        tpl = torch.from_numpy(render_shape(codepoint, size=size)).unsqueeze(0).to(x.device)
+        traj = [x.clone()]
+        with torch.no_grad():
+            for _ in range(steps):
+                x = self.model.update(x, fire_rate=fire_rate, template=tpl)
+                traj.append(x.clone())
+        return torch.stack(traj, dim=1), x
 
     def speak_with_body(self, x: torch.Tensor, said: str, size: int | None = None,
                         morph_steps: int = 40, hold_steps: int = 24, rest_steps: int = 30,

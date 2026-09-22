@@ -136,6 +136,20 @@ def test_mind_reply_returns_a_pose():
     assert wounded["pose"]["fire"] < 1.0
 
 
+def test_reply_names_a_shape():
+    from nca.shapes import emoji_font
+
+    if emoji_font() is None:
+        return
+    mind = DiatomMind(DiatomNCA(num_channels=16, hidden_dim=16))
+    out = mind.reply("become a cloud")
+    assert out["shape"] and out["shape"]["emoji"] == "\u2601"
+    assert out["words"] == []
+    assert mind.reply("hello")["shape"] is None
+    _, final = mind.become(mind.model.seed(1, 24), 0x2601, steps=3, size=24)
+    assert final.shape == (1, 16, 24, 24)
+
+
 def test_body_speaks_through_template():
     mind = DiatomMind(DiatomNCA(num_channels=16, hidden_dim=16))
     x = mind.model.seed(1, 24)
