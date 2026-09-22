@@ -4,7 +4,7 @@
 *Independent Researcher. M.Ed., Higher Education Administration, University of Massachusetts Lowell.*
 Correspondence: [github.com/AaronGrace978/Automata](https://github.com/AaronGrace978/Automata)
 
-*Working paper v1.6, September 2026. All reported numbers come from one
+*Working paper v1.7, September 2026. All reported numbers come from one
 3000-step GPU rule at 48 px; regeneration is scored over 10 seeds against an
 untrained baseline. All code, targets, and demos are open source (MIT).*
 
@@ -102,8 +102,9 @@ leaky integrator of loudness, so tissue remembers what it heard.
 | 0–2 | RGB pigment |
 | 3 | Alpha / maturity; `alive = maxpool(alpha) > 0.1` |
 | 4–7 | DNA genome: constant per organism, steers fate |
-| 8–10 | Morphogen: slow auxiliary memory |
-| 11 | AUDIO sense: leaky integrator of loudness |
+| 8–9 | Morphogen: slow auxiliary memory |
+| 10 | TEMPLATE: silica template, the glyph the body grows into (§7) |
+| 11 | AUDIO sense: loudness conditioning channel |
 | 12–15 | Hidden / silica-deposition state |
 
 ### 3.2 The local rule
@@ -235,20 +236,47 @@ preliminary.
 
 Joint-embedding training objectives (predict the organism's future latent under
 masking, not its pixels); song-to-species (a track's summary features as
-genome); a learned 3D cellular automaton (the desktop frustule in §7 is worn
-glass, not a 3D rule); genome evolution against symmetry and pore-regularity
+genome); a true 3D cellular automaton (the desktop glass in §7 is the 2D grid
+lifted by alpha, not a 3D rule); larger bodies that hold a phrase rather than a
+word; genome evolution against symmetry and pore-regularity
 fitness; fine-tuning on SEM imagery; grounding evaluation for the LM backbone.
 
-## 7. Desktop runtime
+## 7. The body speaks: words as silica templates
 
-Version 1.6 puts the organism in an Electron window (`electron/`). A centric
-pillbox — two valves, girdle, radial ribs, areolae — is rebuilt every frame
-from a morph pose. The pose is a pure function of the RID vector, the words
-just exchanged, and a damage pulse (`nca/morph.py`). The same function is
-implemented in `electron/renderer/morph.js`; the test suite refuses a drift.
-Cutting the organism collapses a wedge of the valve; the wedge returns as the
-pain drive decays. This is not a trained 3D cellular automaton. It is the felt
-state, worn as glass, so a person can speak to the body and watch it change.
+A diatom does not draw its frustule; it deposits silica along an organic
+template inside the cell. Version 1.7 gives the automaton the same mechanism.
+Channel 10 is the **template**: a word rendered into the grid as a soft mask
+(`nca/glyph.py`), written into every cell before perception at every step
+(`DiatomNCA.update(template=...)`). Cells at the edge of the body see the
+template's gradient through their Sobel kernels and grow into it; cells with
+no template under them are trained to withdraw. The rule stays local and
+shared. Nothing draws the letters. The body becomes them.
+
+**Fine-tune.** `train_morph` (`nca/train.py`) starts from the grown frustule
+rule and keeps a pool of organisms with tasks. Half the tasks are frustules
+with an empty template, so the original behaviour is preserved; half are words
+— the creature's lexicon and random letter strings, rendered with jittered
+scale and blur so the rule learns the template rather than one font's pixels
+(`stroke_width=1` thickens letters to a width a 48-cell body can hold). At
+each iteration a third of the sampled organisms are handed a new task *without
+touching their bodies*, so the rule learns frustule→word, word→word, and
+word→frustule transitions, with damage and audio as before. Words longer than
+seven characters are split across two lines; a 48-cell body holds one word at
+a time, which is why a reply is spelled word by word.
+`python scripts/train_words.py --device cuda` runs it; a 2,400-step CPU run
+already produced legible gold letters with a glass rim (Figure: `assets/demo/words_strip.png`).
+
+**Desktop.** The Electron window (`electron/`) runs the fine-tuned rule in
+JavaScript (`renderer/nca.js`), a cell-for-cell port of `model.py` checked by
+`tests/test_body_parity.py` with every cell firing. The grid *is* the 3D
+object: a plane displaced by the alpha channel and coloured by the pigment
+channels, lit in a shader that differentiates the height field. When the
+person speaks, a local model answers in the persona's voice, `glyph.js`
+renders each word of the answer into the template, and the cells rebuild the
+body as that word for 40 steps, hold it for 28, then the template clears and
+the frustule returns. The felt state (RID) is computed from the same grid, and
+the reply's vocabulary sets the fire rate and the audio energy the rule
+receives. Cut removes half the grid; the rule regrows it.
 
 The language model is local. The locked default is **Qwen2.5-14B-Instruct** at
 **Q4_K_M** (`ollama pull qwen2.5:14b`), about 9 GB of weights. A 13B-class
@@ -266,8 +294,8 @@ commercial use by monthly active users. Ollama Cloud is not a dependency. The
 app refuses a non-loopback host and any tag containing "cloud": a product that
 can be sold cannot send the conversation off the machine or inherit a hosted
 catalog's licenses. The Ollama program itself is MIT and runs on the customer's
-GPU. When it is absent, the grounded narrator still speaks and the frustule
-still morphs. See `COMMERCIAL.md`.
+GPU. When it is absent, the grounded narrator still speaks and the body still
+spells it. See `COMMERCIAL.md`.
 
 ## 8. Author Statement
 
@@ -292,8 +320,10 @@ assistance under the author's direction.
 
 ```bash
 pip install -r requirements.txt
-pytest -q                                              # 32 tests
-cd electron && npm install && npm start               # 3D frustule, local model
+pytest -q                                              # 36 tests
+python scripts/train_words.py --device cuda           # body -> words fine-tune (§7)
+python scripts/demo_words.py --text "glass holds"     # assets/words.gif
+cd electron && npm install && npm start               # the automaton, as glass, local model
 ollama pull qwen2.5:14b                               # Apache-2.0, Q4_K_M, ~9GB
 python scripts/train_diatom.py --steps 3000 --size 48  # E1
 python scripts/demo_regenerate.py --checkpoint assets/checkpoint.pt   # E2

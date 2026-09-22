@@ -94,6 +94,9 @@ function reseed(){
 function perceiveStep(){
   // returns updated state in place (one CA step), JS-direct for clarity
   const idx=(ch,y,x)=> ch*SIZE*SIZE + y*SIZE + x;
+  // Channel 10 is the silica template (nca/model.py TEMPLATE_CH). This page
+  // has no words to write, so it is cleared each step, as in training.
+  state.fill(0, 10*SIZE*SIZE, 11*SIZE*SIZE);
   const next = new Float32Array(state);
   // FiLM from audio
   const film = new Float32Array(HIDDEN*2);

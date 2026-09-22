@@ -17,6 +17,7 @@
       </div>
       <p id="badge">Ollama Cloud off</p>
     </header>
+    <p id="word" aria-live="polite"></p>
   </div>
   <section id="talk">
     <aside id="meters" aria-label="Felt state"></aside>
@@ -32,6 +33,9 @@
       <button type="button" data-say="Bloom now">Bloom</button>
       <button type="button" data-say="Rest. Be still.">Rest</button>
       <button type="button" data-say="Sing with the tide.">Tide</button>
+      <label>Speed
+        <input id="speed" type="range" min="1" max="5" value="2" />
+      </label>
       <label>Persona
         <select id="persona">
           <option value="diatom_elder">Elder</option>
@@ -42,8 +46,11 @@
       <p id="status">Checking the local model…</p>
     </div>
   </section>
+  <script src="../../web/weights.js"></script>
   <script src="morph.js"></script>
   <script src="voice.js"></script>
+  <script src="glyph.js"></script>
+  <script src="nca.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

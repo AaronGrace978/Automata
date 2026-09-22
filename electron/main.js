@@ -189,6 +189,7 @@ if (smoke) {
         process.exit(1);
       }
       console.log(`smoke reply: ${reply.slice(0, 180)}`);
+      console.log(`smoke word: ${info && info.word ? info.word : "(none)"} trained: ${info && info.trained}`);
       process.exit(0);
     } catch (err) {
       console.error(err);

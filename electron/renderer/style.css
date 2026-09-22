@@ -80,6 +80,18 @@ h1 {
   text-transform: uppercase;
 }
 
+#word {
+  position: absolute;
+  right: 22px;
+  bottom: 14px;
+  margin: 0;
+  font-family: Palatino, "Iowan Old Style", Georgia, serif;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--dim);
+  pointer-events: none;
+}
+
 #meters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -204,6 +216,8 @@ button, select {
   color: var(--dim);
   font-size: 13px;
 }
+
+#tools input[type="range"] { width: 90px; }
 
 #status { flex: 1; min-width: 220px; }
 

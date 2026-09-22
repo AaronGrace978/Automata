@@ -6,6 +6,7 @@ assets/*.png
 !assets/demo/*.png
 assets/*.pt
 !assets/checkpoint.pt
+!assets/checkpoint_words.pt
 assets/*.wav
 web/weights.json
 !web/weights.js

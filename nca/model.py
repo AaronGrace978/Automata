@@ -26,7 +26,11 @@ SOBEL_Y = SOBEL_X.T.clone()
 #   0:2  RGB  — visible pigment (fucoxanthin golds, glass blues)
 #   3    A    — alpha / maturity. alive = maxpool(A) > 0.1
 #   4:7   DNA — genome channels. Constant per organism, steer pattern fate.
-#   8:10  MORPH — slow morphogen gradients (auxiliary memory)
+#   8:9   MORPH — slow morphogen gradients (auxiliary memory)
+#   10   TEMPLATE — silica deposition template. A diatom lays glass along an
+#         organic template inside the cell; here the template is a glyph.
+#         Written into every cell each step; the rule learns to grow into it
+#         and to return to the frustule when it is cleared.
 #   11   AUDIO — audio-energy sense channel (written from conditioning vector)
 #   12:15 HIDDEN — free latent / silica-deposition state
 N_CHANNELS = 16
@@ -34,6 +38,7 @@ N_AUDIO_DIMS = 8
 RGB = (0, 1, 2)
 ALPHA = 3
 DNA = (4, 5, 6, 7)
+TEMPLATE_CH = 10
 AUDIO_CH = 11
 
 
@@ -80,12 +85,25 @@ class DiatomNCA(nn.Module):
         return perceps.permute(0, 2, 3, 1)  # (B,H,W,C*3)
 
     def update(
-        self, x: torch.Tensor, audio: torch.Tensor | None = None, fire_rate: float | None = None
+        self,
+        x: torch.Tensor,
+        audio: torch.Tensor | None = None,
+        fire_rate: float | None = None,
+        template: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """One CA step. audio: (B,audio_dim) or None for silence."""
+        """One CA step. audio: (B,audio_dim) or None for silence.
+
+        template: (B,H,W) glyph mask written into TEMPLATE_CH before the
+        cells perceive, or None to leave the channel as it is.
+        """
         b, c, h, w = x.shape
         rate = self.fire_rate if fire_rate is None else fire_rate
         device, dtype = x.device, x.dtype
+
+        if template is not None:
+            x = torch.cat(
+                [x[:, :TEMPLATE_CH], template.to(dtype).unsqueeze(1), x[:, TEMPLATE_CH + 1 :]], dim=1
+            )
 
         p = self.perceive(x)  # (B,H,W,C*3)
         hidden = self.relu(self.fc1(p))  # (B,H,W,hidden)

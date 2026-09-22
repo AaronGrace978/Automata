@@ -128,11 +128,24 @@ def test_mind_reply_returns_a_pose():
     mind = DiatomMind(DiatomNCA(num_channels=16, hidden_dim=16), persona="lab_assistant", seed=0)
     out = mind.reply("hello")
     assert out["said"]
+    assert out["words"] and all(w.isupper() for w in out["words"])
     assert out["pose"]["folds"] == 8
     assert mind.memory[-1] == out["said"]
     wounded = mind.reply("rest", damage_pulse=1)
     assert wounded["pose"]["damage"] > 0.5
     assert wounded["pose"]["fire"] < 1.0
+
+
+def test_body_speaks_through_template():
+    mind = DiatomMind(DiatomNCA(num_channels=16, hidden_dim=16))
+    x = mind.model.seed(1, 24)
+    traj, final = mind.speak_with_body(x, "go now", size=24, morph_steps=3, hold_steps=2, rest_steps=4)
+    # two words x 5 steps + 4 rest steps + the start frame
+    assert traj.shape[1] == 2 * 5 + 4 + 1
+    assert final.shape == (1, 16, 24, 24)
+    # The template was cleared for the rest steps: no glyph left in channel 10,
+    # only the rule's own small residual write.
+    assert float(final[0, 10].abs().max()) < 0.5
 
 
 def test_mind_run_transcript_and_memory():
