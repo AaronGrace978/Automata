@@ -1,7 +1,7 @@
 {
   "name": "diatom-nca",
   "productName": "Diatom",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "A neural cellular automaton whose body spells its replies. Local Apache-2.0 model. Ollama Cloud is not included.",
   "main": "main.js",
   "author": "Aaron Alexander Grace",

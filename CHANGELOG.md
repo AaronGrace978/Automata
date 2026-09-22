@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1 — 2026-09-22
+
+- Removed stray build files from the 1.8.0 commit. Colab notebook clones v1.8.1.
+
 ## 1.8.0 — 2026-09-22
 
 The body takes shape.
