@@ -23,7 +23,10 @@ class Persona:
         # Longest keys first, and only on word boundaries, so "symmetric"
         # does not fire inside "asymmetric" (that produced "awhole-ringed").
         for plain, styled in sorted(self.lexicon.items(), key=lambda kv: len(kv[0]), reverse=True):
-            text = re.sub(rf"\b{re.escape(plain)}\b", styled, text)
+            # (?!\w) rather than a trailing \b, so a phrase that ends in
+            # punctuation ("I am still.") still matches. A leading \b keeps
+            # "symmetric" from firing inside "asymmetric".
+            text = re.sub(rf"\b{re.escape(plain)}(?!\w)", styled, text)
         rng = rng or random.Random()
         if self.openers and rng.random() < 0.5:
             text = f"{rng.choice(self.openers)} {text}"

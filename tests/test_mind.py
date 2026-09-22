@@ -80,6 +80,8 @@ def test_persona_does_not_rewrite_inside_words():
     said = get_persona("diatom_elder").voice("Body: small, shrinking, wounded, asymmetric.")
     assert "awhole" not in said
     assert "asymmetric" in said or "unringed" in said
+    # Phrases that end in punctuation must still restyle.
+    assert "Specimen quiescent." in get_persona("lab_assistant").voice("I am still.")
 
 
 def test_narrator_grounded_and_persona_styled():
@@ -105,10 +107,31 @@ def test_modulation_from_text():
     assert fire2 < 1.0
 
 
+def test_narrator_hears_the_human():
+    raw = GroundedNarrator(seed=0).speak({
+        "instinct_text": "I drift.",
+        "predicates": ["small"],
+        "user_text": "hello",
+    })
+    assert raw.startswith("I heard you.")
+    assert "drift" in raw
+
+
+def test_mind_reply_returns_a_pose():
+    mind = DiatomMind(DiatomNCA(num_channels=16, hidden_dim=16), persona="lab_assistant", seed=0)
+    out = mind.reply("hello")
+    assert out["said"]
+    assert out["pose"]["folds"] == 8
+    assert mind.memory[-1] == out["said"]
+    wounded = mind.reply("rest", damage_pulse=1)
+    assert wounded["pose"]["damage"] > 0.5
+    assert wounded["pose"]["fire"] < 1.0
+
+
 def test_mind_run_transcript_and_memory():
     mind = DiatomMind(DiatomNCA(num_channels=16, hidden_dim=16), persona="lab_assistant", seed=0)
     out = mind.run(steps=24, size=24, speak_every=12)
     assert len(out["transcript"]) == 2
     assert len(mind.memory) == 2
-    assert all("step" in t and "said" in t and "rid" in t for t in out["transcript"])
+    assert all("step" in t and "said" in t and "rid" in t and "pose" in t for t in out["transcript"])
     assert out["trajectory"].shape[1] == 25

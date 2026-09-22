@@ -18,12 +18,18 @@ def main() -> None:
                     choices=["diatom_elder", "lab_assistant", "feral_bloom"])
     ap.add_argument("--steps", type=int, default=96)
     ap.add_argument("--size", type=int, default=48)
+    ap.add_argument("--ollama", action="store_true",
+                    help="Speak with the local allow-listed model. Falls back to the body if Ollama is down.")
     args = ap.parse_args()
 
     model = DiatomNCA()
     if args.checkpoint and os.path.exists(args.checkpoint):
         model.load_state_dict(torch.load(args.checkpoint, map_location="cpu")["state_dict"])
-    mind = DiatomMind(model, persona=args.persona)
+    backbone = None
+    if args.ollama:
+        from nca.backbone import OllamaBackbone
+        backbone = OllamaBackbone()
+    mind = DiatomMind(model, persona=args.persona, backbone=backbone)
 
     print(f"── {args.persona} wakes ──")
     out = mind.run(args.steps // 2, size=args.size, speak_every=args.steps // 4)

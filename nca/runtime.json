@@ -1,0 +1,48 @@
+{
+  "version": "1.6.0",
+  "gpu": "NVIDIA RTX 5060 Ti 16GB",
+  "vram_gb": 16,
+  "ollama_cloud": false,
+  "default_model": "qwen2.5:14b",
+  "default_host": "http://127.0.0.1:11434",
+  "temperature": 0.7,
+  "num_predict": 160,
+  "num_ctx": 4096,
+  "timeout_ms": 120000,
+  "decision": "A 13B-class model in FP16 is about 26GB and does not fit in 16GB. Qwen2.5-14B-Instruct is 14.7B parameters (13.1B non-embedding). At Q4_K_M the weights are about 9GB under Apache-2.0, which leaves room for a 4096-token cache and the 3D frustule on an RTX 5060 Ti 16GB. Ollama Cloud is not a product dependency.",
+  "models": {
+    "qwen2.5:14b": {
+      "name": "Qwen2.5-14B-Instruct",
+      "quant": "Q4_K_M",
+      "license": "Apache-2.0",
+      "weights_gb": 9.0,
+      "params_b": 14.7,
+      "non_embedding_b": 13.1,
+      "pull": "ollama pull qwen2.5:14b"
+    },
+    "qwen2.5:7b": {
+      "name": "Qwen2.5-7B-Instruct",
+      "quant": "Q4_K_M",
+      "license": "Apache-2.0",
+      "weights_gb": 4.7,
+      "params_b": 7.6,
+      "pull": "ollama pull qwen2.5:7b"
+    },
+    "phi4": {
+      "name": "Phi-4",
+      "quant": "Q4_K_M",
+      "license": "MIT",
+      "weights_gb": 9.1,
+      "params_b": 14.0,
+      "pull": "ollama pull phi4"
+    },
+    "phi4-mini": {
+      "name": "Phi-4-mini",
+      "quant": "Q4_K_M",
+      "license": "MIT",
+      "weights_gb": 2.5,
+      "params_b": 3.8,
+      "pull": "ollama pull phi4-mini"
+    }
+  }
+}

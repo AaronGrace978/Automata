@@ -9,8 +9,8 @@ authors:
 repository-code: "https://github.com/AaronGrace978/Automata"
 url: "https://github.com/AaronGrace978/Automata"
 license: MIT
-version: 1.5.0
-date-released: 2026-09-21
+version: 1.6.0
+date-released: 2026-09-22
 keywords:
   - neural-cellular-automata
   - morphogenesis
@@ -25,4 +25,4 @@ preferred-citation:
   title: "Diatom NCA: Audio-Conditioned Neural Cellular Automata That Grow, Heal, Sing, and Speak"
   year: 2026
   url: "https://github.com/AaronGrace978/Automata"
-  notes: "Working paper v1.5 (WHITEPAPER.md)"
+  notes: "Working paper v1.6 (WHITEPAPER.md)"

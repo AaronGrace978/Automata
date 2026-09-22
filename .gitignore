@@ -10,3 +10,7 @@ assets/*.wav
 web/weights.json
 !web/weights.js
 .pytest_cache/
+node_modules/
+electron/node_modules/
+dist/
+out/

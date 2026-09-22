@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diatom</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="view"></canvas>
+    <header>
+      <div>
+        <h1>Diatom</h1>
+        <p id="lockline">Qwen2.5-14B-Instruct · Q4_K_M · Apache-2.0 · RTX 5060 Ti 16GB</p>
+      </div>
+      <p id="badge">Ollama Cloud off</p>
+    </header>
+    <aside id="meters" aria-label="Felt state"></aside>
+  </div>
+  <section id="talk">
+    <div id="log" aria-live="polite"></div>
+    <form id="composer">
+      <label class="sr" for="say">Speak to the diatom</label>
+      <input id="say" type="text" autocomplete="off" placeholder="Speak to the glass" />
+      <button type="submit">Speak</button>
+    </form>
+    <div id="tools">
+      <button type="button" id="cut">Cut</button>
+      <button type="button" id="reseed">New genome</button>
+      <button type="button" data-say="Bloom now">Bloom</button>
+      <button type="button" data-say="Rest. Be still.">Rest</button>
+      <button type="button" data-say="Sing with the tide.">Tide</button>
+      <label>Persona
+        <select id="persona">
+          <option value="diatom_elder">Elder</option>
+          <option value="lab_assistant">Lab</option>
+          <option value="feral_bloom">Bloom</option>
+        </select>
+      </label>
+      <p id="status">Checking the local model…</p>
+    </div>
+  </section>
+  <script src="morph.js"></script>
+  <script src="voice.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../node_modules/three/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

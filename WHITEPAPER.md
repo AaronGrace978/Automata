@@ -4,7 +4,7 @@
 *Independent Researcher. M.Ed., Higher Education Administration, University of Massachusetts Lowell.*
 Correspondence: [github.com/AaronGrace978/Automata](https://github.com/AaronGrace978/Automata)
 
-*Working paper v1.5, September 2026. All reported numbers come from one
+*Working paper v1.6, September 2026. All reported numbers come from one
 3000-step GPU rule at 48 px; regeneration is scored over 10 seeds against an
 untrained baseline. All code, targets, and demos are open source (MIT).*
 
@@ -190,7 +190,7 @@ organism perceives itself, feels, speaks, and its speech moves its body.
 ## 4. Experiments
 
 All protocols ship as scripts and as cells in `notebooks/diatom_nca_colab.ipynb`.
-Unit tests (20) cover the rule, targets, audio features, training step, voice,
+Unit tests cover the rule, targets, audio features, training step, voice,
 vision, instinct, backbone, and mind.
 
 | ID | Protocol | Result |
@@ -235,10 +235,41 @@ preliminary.
 
 Joint-embedding training objectives (predict the organism's future latent under
 masking, not its pixels); song-to-species (a track's summary features as
-genome); 3D frustules; genome evolution against symmetry and pore-regularity
+genome); a learned 3D cellular automaton (the desktop frustule in §7 is worn
+glass, not a 3D rule); genome evolution against symmetry and pore-regularity
 fitness; fine-tuning on SEM imagery; grounding evaluation for the LM backbone.
 
-## 7. Author Statement
+## 7. Desktop runtime
+
+Version 1.6 puts the organism in an Electron window (`electron/`). A centric
+pillbox — two valves, girdle, radial ribs, areolae — is rebuilt every frame
+from a morph pose. The pose is a pure function of the RID vector, the words
+just exchanged, and a damage pulse (`nca/morph.py`). The same function is
+implemented in `electron/renderer/morph.js`; the test suite refuses a drift.
+Cutting the organism collapses a wedge of the valve; the wedge returns as the
+pain drive decays. This is not a trained 3D cellular automaton. It is the felt
+state, worn as glass, so a person can speak to the body and watch it change.
+
+The language model is local. The locked default is **Qwen2.5-14B-Instruct** at
+**Q4_K_M** (`ollama pull qwen2.5:14b`), about 9 GB of weights. A 13B-class
+network in FP16 is about 26 GB and does not fit a 16 GB RTX 5060 Ti. This
+model is 14.7B parameters with 13.1B of them outside the embedding table, which
+is the 13B-class network that actually fits: the 4-bit quant leaves room for a
+4096-token cache and the frustule on that card. Context is pinned at 4096 so
+the cache cannot grow into the card on its own.
+
+The weights are Apache-2.0. The allow-list also admits Qwen2.5-7B-Instruct
+(Apache-2.0) and Phi-4 / Phi-4-mini (MIT). Qwen2.5-3B and Qwen2.5-72B are
+excluded because those two sizes use the Qwen license rather than Apache-2.0.
+Llama-family weights are excluded because their community license caps
+commercial use by monthly active users. Ollama Cloud is not a dependency. The
+app refuses a non-loopback host and any tag containing "cloud": a product that
+can be sold cannot send the conversation off the machine or inherit a hosted
+catalog's licenses. The Ollama program itself is MIT and runs on the customer's
+GPU. When it is absent, the grounded narrator still speaks and the frustule
+still morphs. See `COMMERCIAL.md`.
+
+## 8. Author Statement
 
 This is the independent research contribution of Aaron Alexander Grace, M.Ed.
 (Higher Education Administration, University of Massachusetts Lowell), who also
@@ -261,7 +292,9 @@ assistance under the author's direction.
 
 ```bash
 pip install -r requirements.txt
-pytest -q                                              # 20 tests
+pytest -q                                              # 32 tests
+cd electron && npm install && npm start               # 3D frustule, local model
+ollama pull qwen2.5:14b                               # Apache-2.0, Q4_K_M, ~9GB
 python scripts/train_diatom.py --steps 3000 --size 48  # E1
 python scripts/demo_regenerate.py --checkpoint assets/checkpoint.pt   # E2
 python scripts/demo_audio.py --checkpoint assets/checkpoint.pt --wav your.wav  # E3

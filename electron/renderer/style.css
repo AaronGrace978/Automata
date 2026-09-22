@@ -1,0 +1,210 @@
+:root {
+  color-scheme: dark;
+  --bg: #070b10;
+  --panel: #10161f;
+  --line: #243244;
+  --ink: #e7eef6;
+  --dim: #93a4b8;
+  --gold: #e4c27a;
+  --cyan: #58c4dc;
+  --glass: #1c6f8f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+#stage {
+  position: relative;
+  flex: 1;
+  min-height: 360px;
+}
+
+#view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+#view:active { cursor: grabbing; }
+
+header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 22px 0;
+  pointer-events: none;
+}
+
+h1 {
+  margin: 0;
+  font-family: Palatino, "Iowan Old Style", Georgia, serif;
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+}
+
+#lockline, #badge, #status, .fold {
+  margin: 4px 0 0;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+#badge {
+  border: 1px solid var(--line);
+  background: rgba(7, 11, 16, 0.72);
+  color: var(--gold);
+  border-radius: 999px;
+  padding: 6px 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#meters {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  width: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(16, 22, 31, 0.78);
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--dim);
+  margin: 3px 0;
+}
+
+.bar {
+  height: 6px;
+  background: #1a2433;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--glass), var(--cyan));
+}
+
+#talk {
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  padding: 12px 16px 14px;
+}
+
+#log {
+  min-height: 72px;
+  max-height: 132px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+#log p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+#log .glass {
+  font-family: Palatino, Georgia, serif;
+  color: var(--gold);
+}
+
+#log span {
+  display: inline-block;
+  min-width: 52px;
+  margin-right: 8px;
+  color: var(--dim);
+  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#composer {
+  display: flex;
+  gap: 8px;
+}
+
+#say {
+  flex: 1;
+  background: #0c121a;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+#say:focus { outline: 1px solid var(--cyan); }
+
+button, select {
+  background: var(--glass);
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+#tools button, #tools select {
+  background: #182433;
+  border: 1px solid var(--line);
+}
+
+#tools label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--dim);
+  font-size: 13px;
+}
+
+#status { flex: 1; min-width: 220px; }
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
