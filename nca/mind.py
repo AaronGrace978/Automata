@@ -14,6 +14,7 @@ from __future__ import annotations
 import torch
 
 from .backbone import GroundedNarrator
+from .glyph import render_text, words_of
 from .instinct import InstinctState
 from .model import DiatomNCA
 from .morph import modulation_from_text, pose_from_state
@@ -96,7 +97,36 @@ class DiatomMind:
         said = self.persona.voice(raw)
         self.memory.append(said)
         pose = pose_from_state(obs["rid"], said, user_text, self.fold, damage_pulse)
-        return {"said": said, "pose": pose, "fire": pose["fire"], "energy": pose["energy"]}
+        return {
+            "said": said,
+            "words": words_of(said),
+            "pose": pose,
+            "fire": pose["fire"],
+            "energy": pose["energy"],
+        }
+
+    def speak_with_body(self, x: torch.Tensor, said: str, size: int | None = None,
+                        morph_steps: int = 40, hold_steps: int = 24, rest_steps: int = 30,
+                        fire_rate: float = 0.5) -> tuple[torch.Tensor, torch.Tensor]:
+        """Grow the body through the words of ``said`` and back to glass.
+
+        Returns (trajectory (1,T,C,H,W), final state). This is the same
+        schedule the desktop app runs: template on for morph+hold steps per
+        word, then cleared so the frustule returns.
+        """
+        size = size or x.shape[-1]
+        traj = [x.clone()]
+        with torch.no_grad():
+            for word in words_of(said):
+                tpl = torch.from_numpy(render_text(word, size=size)).unsqueeze(0).to(x.device)
+                for _ in range(morph_steps + hold_steps):
+                    x = self.model.update(x, fire_rate=fire_rate, template=tpl)
+                    traj.append(x.clone())
+            clear = torch.zeros(1, size, size, device=x.device)
+            for _ in range(rest_steps):
+                x = self.model.update(x, fire_rate=fire_rate, template=clear)
+                traj.append(x.clone())
+        return torch.stack(traj, dim=1), x
 
     def run(self, steps: int = 96, size: int = 48, speak_every: int = 24, audio=None) -> dict:
         """Grow, feel, and speak. Returns transcript + trajectory + final state."""

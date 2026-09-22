@@ -1,8 +1,8 @@
 {
   "name": "diatom-nca",
   "productName": "Diatom",
-  "version": "1.6.0",
-  "description": "A desktop diatom you can talk to. Local Apache-2.0 model. Ollama Cloud is not included.",
+  "version": "1.7.1",
+  "description": "A neural cellular automaton whose body spells its replies. Local Apache-2.0 model. Ollama Cloud is not included.",
   "main": "main.js",
   "author": "Aaron Alexander Grace",
   "license": "MIT",

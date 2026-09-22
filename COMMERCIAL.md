@@ -42,7 +42,11 @@ Local Ollama is MIT software. The customer installs it and pulls an allow-listed
 
 ## When the model is not installed
 
-The frustule still morphs, and the grounded narrator still answers from the felt state. A sale does not depend on a weight download completing first. The 14B model is what speaks once `ollama pull qwen2.5:14b` has finished.
+The body still grows, the grounded narrator still answers from the felt state, and the cells still spell that answer. A sale does not depend on a weight download completing first. The 14B model is what speaks once `ollama pull qwen2.5:14b` has finished.
+
+## The diatom's own weights
+
+The cellular automaton (`assets/checkpoint.pt`, `assets/checkpoint_words.pt`, `web/weights.js`) is trained in this repository on procedural targets and rendered words. Those weights are yours under the MIT license, with no third-party model license attached. The fonts used to render training words (DejaVu Sans Bold) are under the DejaVu license, which permits this use; the weights do not embed the font.
 
 ## Notices a shipped product still has to carry
 

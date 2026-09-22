@@ -1,213 +1,273 @@
 import { mount } from "./diatom3d.js";
 
+// One body. The cellular automaton grows the frustule, and when it speaks,
+// the same cells grow into the words of the reply, one at a time, then
+// return to glass. The chat log is a transcript; the body is the display.
+
 const morph = window.DiatomMorph;
 const voice = window.DiatomVoice;
-  const canvas = document.getElementById("view");
-  const log = document.getElementById("log");
-  const form = document.getElementById("composer");
-  const input = document.getElementById("say");
-  const statusEl = document.getElementById("status");
-  const lockline = document.getElementById("lockline");
-  const personaEl = document.getElementById("persona");
-  const meters = document.getElementById("meters");
-  const smoke = new URLSearchParams(location.search).has("smoke");
+const glyph = window.DiatomGlyph;
+const { DiatomBody } = window.DiatomNCA;
 
-  const view = mount(canvas);
-  let rid = [0.05, 0.15, 0, 0.25, 0, 0.2];
-  let fold = 8;
-  let damagePulse = 0;
-  let persona = "diatom_elder";
-  let memory = [];
-  let busy = false;
-  let target = morph.poseFromState(rid, "", "", fold, 0);
+const SIZE = 48;
+const MORPH_STEPS = 48;
+const HOLD_STEPS = 30;
+const REST_STEPS = 30;
 
-  const METER_KEYS = [
-    ["arousal", 0],
-    ["valence", 1],
-    ["pain", 2],
-    ["hunger", 3],
-    ["rhythm", 4],
-    ["calm", 5],
-  ];
+const canvas = document.getElementById("view");
+const log = document.getElementById("log");
+const form = document.getElementById("composer");
+const input = document.getElementById("say");
+const statusEl = document.getElementById("status");
+const lockline = document.getElementById("lockline");
+const personaEl = document.getElementById("persona");
+const meters = document.getElementById("meters");
+const wordEl = document.getElementById("word");
+const smoke = new URLSearchParams(location.search).has("smoke");
 
-  function bodyDesc(pose) {
-    return {
-      mass: 0.18 + 0.45 * (1 - pose.damage) * (0.35 + 0.65 * pose.pores),
-      rgb: [0.62, 0.48, 0.28],
-      spread: pose.girdle,
-      pan: 0.5,
-      symmetry: 1 - pose.asymmetry,
-    };
+const body = new DiatomBody(SIZE, window.DIATOM_WEIGHTS || null);
+const view = mount(canvas, body);
+
+let rid = [0.05, 0.15, 0, 0.25, 0, 0.2];
+let persona = "diatom_elder";
+let memory = [];
+let busy = false;
+let prevMass = null;
+let stepsPerFrame = 2;
+let queue = [];
+let current = null;
+let restLeft = 0;
+let woundedRecently = 0;
+
+const METER_KEYS = [
+  ["arousal", 0],
+  ["valence", 1],
+  ["pain", 2],
+  ["hunger", 3],
+  ["rhythm", 4],
+  ["calm", 5],
+];
+
+function paintMeters() {
+  const rows = METER_KEYS.map(([name, index]) => {
+    const value = (rid[index] + 1) / 2;
+    return `<div class="meter"><span>${name}</span><div class="bar"><div style="width:${Math.round(value * 100)}%"></div></div></div>`;
+  });
+  rows.push(
+    `<p class="fold">${body.trained ? "trained rule" : "untrained soup"} · ${SIZE}×${SIZE} cells · ${queue.length + (current ? 1 : 0)} words waiting</p>`
+  );
+  meters.innerHTML = rows.join("");
+}
+
+function pushLine(role, text) {
+  const item = document.createElement("p");
+  item.className = role === "you" ? "you" : "glass";
+  const who = document.createElement("span");
+  who.textContent = role === "you" ? "You" : personaLabel();
+  item.appendChild(who);
+  item.appendChild(document.createTextNode(text));
+  log.appendChild(item);
+  while (log.children.length > 6) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+
+function personaLabel() {
+  if (persona === "lab_assistant") return "Lab";
+  if (persona === "feral_bloom") return "Bloom";
+  return "Elder";
+}
+
+function setStatus(state) {
+  lockline.textContent = `${state.name} · ${state.quant} · ${state.license} · ${state.gpu} · context ${state.numCtx}`;
+  if (state.ready) {
+    statusEl.textContent = `${state.name} is on this machine.`;
+  } else if (state.ok) {
+    statusEl.textContent = `Ollama is up. Until you run \`${state.pull}\`, the body speaks from its felt state.`;
+  } else {
+    statusEl.textContent = "Ollama is not running. The body still speaks from its felt state. Start Ollama, then pull the model.";
   }
+}
 
-  function paintMeters() {
-    const pose = target;
-    const rows = METER_KEYS.map(([name, index]) => {
-      const value = (rid[index] + 1) / 2;
-      return `<div class="meter"><span>${name}</span><div class="bar"><div style="width:${Math.round(value * 100)}%"></div></div></div>`;
-    });
-    rows.push(
-      `<div class="meter"><span>damage</span><div class="bar"><div style="width:${Math.round(pose.damage * 100)}%"></div></div></div>`
-    );
-    rows.push(`<p class="fold">genome ${pose.folds}-fold</p>`);
-    meters.innerHTML = rows.join("");
+async function refreshStatus() {
+  try {
+    setStatus(await window.diatom.status());
+  } catch (err) {
+    statusEl.textContent = "Status unavailable. The body still speaks from its felt state.";
   }
+}
 
-  function retarget(utterance, userText) {
-    target = morph.poseFromState(rid, utterance, userText, fold, damagePulse);
-    view.setTarget(target);
+// Words become templates. The rule grows the body into each one.
+function say(text) {
+  for (const word of glyph.wordsOf(text)) queue.push(word);
+}
+
+function advanceWords() {
+  if (current) {
+    current.left -= 1;
+    if (current.left > 0) return;
+    current = null;
+    body.setTemplate(null);
+    restLeft = queue.length ? 6 : REST_STEPS;
+    wordEl.textContent = "";
+    return;
+  }
+  if (restLeft > 0) {
+    restLeft -= 1;
+    return;
+  }
+  if (!queue.length) return;
+  const word = queue.shift();
+  body.setTemplate(glyph.renderText(word, SIZE));
+  current = { word, left: MORPH_STEPS + HOLD_STEPS };
+  wordEl.textContent = word;
+}
+
+function feel() {
+  const desc = body.describe();
+  const growth = prevMass == null ? 0 : desc.mass - prevMass;
+  let relDrop = 0;
+  if (prevMass != null && prevMass > 1e-6 && growth < 0) relDrop = -growth / prevMass;
+  prevMass = desc.mass;
+  // While the body is rebuilding itself as a word, mass swings are speech, not wounds.
+  const speaking = current != null || restLeft > 0;
+  rid = morph.stepDrives(
+    rid, desc, speaking ? growth * 0.25 : growth, body.audio[0], 0,
+    speaking ? 0 : relDrop
+  );
+  if (woundedRecently > 0) woundedRecently -= 1;
+  return { desc, growth, relDrop };
+}
+
+let frameNo = 0;
+function tick() {
+  frameNo += 1;
+  for (let i = 0; i < stepsPerFrame; i++) {
+    body.step();
+    advanceWords();
+  }
+  if (frameNo % 6 === 0) {
+    feel();
     paintMeters();
   }
+  for (let k = 0; k < body.audio.length; k++) body.audio[k] *= 0.985;
+  requestAnimationFrame(tick);
+}
 
-  function pushLine(role, text) {
-    const item = document.createElement("p");
-    item.className = role === "you" ? "you" : "glass";
-    const who = document.createElement("span");
-    who.textContent = role === "you" ? "You" : personaLabel();
-    item.appendChild(who);
-    item.appendChild(document.createTextNode(text));
-    log.appendChild(item);
-    while (log.children.length > 8) log.removeChild(log.firstChild);
-    log.scrollTop = log.scrollHeight;
-  }
-
-  function personaLabel() {
-    if (persona === "lab_assistant") return "Lab";
-    if (persona === "feral_bloom") return "Bloom";
-    return "Elder";
-  }
-
-  function setStatus(state) {
-    const spec = `${state.name} · ${state.quant} · ${state.license}`;
-    lockline.textContent = `${spec} · ${state.gpu} · context ${state.numCtx}`;
-    if (state.ready) {
-      statusEl.textContent = `${state.name} is on this machine.`;
-      return;
-    }
-    if (state.ok) {
-      statusEl.textContent = `Ollama is up. Until you run \`${state.pull}\`, the glass speaks from its body.`;
-      return;
-    }
-    statusEl.textContent = "Ollama is not running. The glass still speaks from its body. Start Ollama, then pull the model.";
-  }
-
-  async function refreshStatus() {
-    try {
-      setStatus(await window.diatom.status());
-    } catch (err) {
-      statusEl.textContent = "Status unavailable. The glass still speaks from its body.";
-    }
-  }
-
-  async function talk(userText) {
-    const text = userText.trim();
-    if (!text || busy) return "";
-    busy = true;
-    input.disabled = true;
-    pushLine("you", text);
-    const [fire, energy] = morph.modulationFromText(text);
-    const relDrop = damagePulse > 0.4 ? 0.5 : 0;
-    rid = morph.stepDrives(rid, bodyDesc(target), (fire - 1) * 0.04, energy, 0, relDrop);
-    retarget("", text);
-    const instinct = voice.instinctText(rid);
-    const preds = voice.predicates(bodyDesc(target), (fire - 1) * 0.04, relDrop, rid[2]);
-    const local = voice.speakLocal({
-      persona,
-      instinct,
-      predicates: preds,
-      userText: text,
-      seed: (Date.now() ^ (text.length * 997)) >>> 0,
-    });
-    let said = local;
-    let via = "body";
-    try {
-      const messages = voice.messagesFor({
-        persona,
-        instinct,
-        predicates: preds,
-        userText: text,
-        memory,
-      });
-      const result = await window.diatom.chat({ messages });
-      if (result && result.ok && result.text) {
-        said = result.text.replace(/\s+/g, " ").trim().slice(0, 600);
-        via = result.model;
-      }
-    } catch (err) {
-      via = "body";
-    }
-    const [fire2, energy2] = morph.modulationFromText(said);
-    rid = morph.stepDrives(rid, bodyDesc(target), (fire2 - 1) * 0.03, energy2, 0, 0);
-    if (damagePulse > 0) damagePulse *= 0.55;
-    retarget(said, text);
-    memory.push(said);
-    if (memory.length > 6) memory = memory.slice(-6);
-    pushLine("glass", said);
-    statusEl.dataset.via = via;
-    busy = false;
-    input.disabled = false;
-    input.focus();
-    return said;
-  }
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const text = input.value;
-    input.value = "";
-    talk(text);
+async function talk(userText) {
+  const text = userText.trim();
+  if (!text || busy) return "";
+  busy = true;
+  input.disabled = true;
+  pushLine("you", text);
+  const [fire, energy] = morph.modulationFromText(text);
+  body.fireRate = Math.max(0.2, Math.min(0.95, 0.5 * fire));
+  body.audio[0] = Math.max(body.audio[0], energy);
+  const { desc, growth, relDrop } = feel();
+  const instinct = voice.instinctText(rid);
+  const preds = voice.predicates(desc, growth, woundedRecently > 0 ? 0.5 : relDrop, rid[2]);
+  let said = voice.speakLocal({
+    persona, instinct, predicates: preds, userText: text,
+    seed: (Date.now() ^ (text.length * 997)) >>> 0,
   });
-
-  document.getElementById("cut").addEventListener("click", () => {
-    damagePulse = 1;
-    rid = morph.stepDrives(rid, bodyDesc(target), -0.08, 0, 0, 0.8);
-    retarget("Something tore me.", "");
-    talk("A blade just took half of you.");
-  });
-
-  document.getElementById("reseed").addEventListener("click", () => {
-    const folds = [6, 8, 10, 12, 16];
-    fold = folds[Math.floor(Math.random() * folds.length)];
-    damagePulse = 0;
-    rid = [0.2, 0.1, 0, 0.55, 0.1, -0.1];
-    retarget("I want to spread.", "");
-    talk("Grow a new frustule.");
-  });
-
-  personaEl.addEventListener("change", () => {
-    persona = personaEl.value;
-  });
-
-  document.querySelectorAll("[data-say]").forEach((button) => {
-    button.addEventListener("click", () => talk(button.getAttribute("data-say")));
-  });
-
-  setInterval(() => {
-    if (damagePulse > 0.001) damagePulse *= 0.86;
-    if (rid[2] > 0.05 || damagePulse > 0.001) {
-      rid = morph.stepDrives(rid, bodyDesc(target), 0, 0, 0, damagePulse > 0.3 ? 0.35 : 0);
-      retarget("", "");
+  try {
+    const messages = voice.messagesFor({ persona, instinct, predicates: preds, userText: text, memory });
+    const result = await window.diatom.chat({ messages });
+    if (result && result.ok && result.text) {
+      said = result.text.replace(/\s+/g, " ").trim().slice(0, 400);
     }
-  }, 700);
+  } catch (err) {
+    // The felt-state line above is already the answer.
+  }
+  const [fire2, energy2] = morph.modulationFromText(said);
+  body.fireRate = Math.max(0.2, Math.min(0.95, 0.5 * fire2));
+  body.audio[0] = Math.max(body.audio[0], energy2);
+  view.setSpin(0.0015 + 0.004 * Math.max(rid[0], 0) + 0.003 * Math.max(rid[4], 0));
+  memory.push(said);
+  if (memory.length > 6) memory = memory.slice(-6);
+  pushLine("glass", said);
+  say(said);
+  paintMeters();
+  busy = false;
+  input.disabled = false;
+  input.focus();
+  return said;
+}
 
-  retarget("", "");
-  window.addEventListener("resize", () => view.resize());
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = input.value;
+  input.value = "";
+  talk(text);
+});
 
-  refreshStatus().then(async () => {
-    if (smoke) {
-      const reply = await talk("hello");
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      window.diatom.smokeReady({ reply, folds: target.folds });
-      return;
+document.getElementById("cut").addEventListener("click", () => {
+  queue = [];
+  current = null;
+  body.setTemplate(null);
+  body.cutHalf();
+  woundedRecently = 40;
+  const desc = body.describe();
+  rid = morph.stepDrives(rid, desc, -0.08, 0, 0, 0.8);
+  prevMass = desc.mass;
+  talk("A blade just took half of you.");
+});
+
+document.getElementById("reseed").addEventListener("click", () => {
+  queue = [];
+  current = null;
+  body.setTemplate(null);
+  body.newGenome(0.2);
+  prevMass = null;
+  rid = [0.2, 0.1, 0, 0.55, 0.1, -0.1];
+  talk("Grow a new frustule.");
+});
+
+personaEl.addEventListener("change", () => {
+  persona = personaEl.value;
+});
+
+document.querySelectorAll("[data-say]").forEach((button) => {
+  button.addEventListener("click", () => talk(button.getAttribute("data-say")));
+});
+
+const speed = document.getElementById("speed");
+if (speed) {
+  speed.addEventListener("input", () => {
+    stepsPerFrame = +speed.value;
+  });
+}
+
+window.addEventListener("resize", () => view.resize());
+paintMeters();
+requestAnimationFrame(tick);
+
+refreshStatus().then(async () => {
+  if (smoke) {
+    // Let the frustule grow, then speak, then wait for the body to be a word.
+    await new Promise((r) => setTimeout(r, 3500));
+    const reply = await talk("hello");
+    // Capture once the body has finished becoming its first word.
+    const started = Date.now();
+    while (Date.now() - started < 20000) {
+      if (current && current.left <= HOLD_STEPS * 0.5) break;
+      await new Promise((r) => setTimeout(r, 60));
     }
-    const instinct = voice.instinctText(rid);
+    await new Promise((r) => setTimeout(r, 120));
+    window.diatom.smokeReady({ reply, word: wordEl.textContent, trained: body.trained });
+    return;
+  }
+  // Grow first; speak once the body has a shape.
+  setTimeout(() => {
+    const { desc, growth } = feel();
     const said = voice.speakLocal({
       persona,
-      instinct,
-      predicates: voice.predicates(bodyDesc(target), 0, 0, rid[2]),
+      instinct: voice.instinctText(rid),
+      predicates: voice.predicates(desc, growth, 0, rid[2]),
       userText: "",
       seed: 2,
     });
     memory.push(said);
     pushLine("glass", said);
-    retarget(said, "");
-  });
+    say(said);
+  }, 2600);
+});

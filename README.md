@@ -25,11 +25,12 @@ local computation.
 | **The Diatom road** | `nca/diatom.py` — procedural `centric_diatom()` / `pennate_diatom()` targets: girdle, ribs, striae, areolae pores, raphe, rosette | `sample_target()` / `batch_targets()` — infinite frustule dataset, no downloads |
 | **Regeneration creature** | `nca/utils.py` damage ops + `nca/train.py` pool training that damages half of every batch | `python scripts/demo_regenerate.py` → cut → heal GIF |
 | **Feed audio into the weights** | `nca/audio.py` + FiLM in `nca/model.py`: 8-dim sound vector → γ/β that scale/shift every hidden neuron + fire-rate + AUDIO sense channel | `python scripts/demo_audio.py --kind beat` or `--wav your.wav` |
-| **Extra cell channels (16)** | `0:2` RGB pigment · `3` alpha/maturity · `4:7` DNA genome · `8:10` morphogen memory · `11` AUDIO sense · `12:15` hidden/silica state | fix DNA per organism to steer fate; read channel 11 as the cell's memory of sound |
+| **Extra cell channels (16)** | `0:2` RGB pigment · `3` alpha/maturity · `4:7` DNA genome · `8:9` morphogen memory · `10` TEMPLATE (silica template: the word) · `11` AUDIO sense · `12:15` hidden/silica state | fix DNA per organism to steer fate; write a glyph into channel 10 and the body grows into it |
 | **Live in the browser** | `web/demo.html` — pure-JS NCA, mic + synth conditioning, cut/genome/symmetry controls | open the file, no server; `scripts/export_weights.py` drops trained weights in |
 | **It talks** | `nca/voice.py` — sonification: growth → stereo pentatonic song (mass→pitch, pigment→chord, growth→loudness, position→pan) | `python scripts/demo_voice.py` → creature sings, then grows under its own song |
 | **It speaks** | `nca/mind.py` — the talking-NCA stack: visual module → instinct (RID felt layer) → language backbone (grounded narrator, local Qwen/Phi, or SmolLM2) → persona; words feed back into growth | `python scripts/demo_mind.py --persona feral_bloom` → converse with the creature |
-| **You can talk to a 3D frustule** | `electron/` — Electron + Three.js pillbox (valves, girdle, ribs, areolae) morphed by the same pose as `nca/morph.py`. Speech is local **Qwen2.5-14B-Instruct Q4_K_M** (Apache-2.0). Ollama Cloud is refused. | `cd electron && npm install && npm start` |
+| **The body becomes the words** | `nca/glyph.py` + `nca/train.py::train_morph` — a word is rendered into the silica TEMPLATE channel and the rule is fine-tuned to grow the frustule into the letters, hold, and return to glass when the template clears | `python scripts/train_words.py --device cuda` → `python scripts/demo_words.py --text "glass holds"` |
+| **Talk to it on the desktop** | `electron/` — the real 48×48 automaton runs in the window (`renderer/nca.js`, cell-for-cell with PyTorch) and its grid is the 3D glass. Replies come from local **Qwen2.5-14B-Instruct Q4_K_M** (Apache-2.0); the cells grow into each word. Ollama Cloud is refused. | `cd electron && npm install && npm start` |
 
 ## Quickstart
 
@@ -57,11 +58,35 @@ python scripts/export_weights.py  # -> web/weights.json for the browser demo
 # 6. run the tests
 pytest -q
 
-# 7. desktop creature (Electron). The 3D frustule morphs while you talk.
+# 7. fine-tune the diatom so its body morphs into words (RTX 5060 Ti: minutes)
+#    or on an A100 in Colab: notebooks/train_words_colab.ipynb
+python scripts/train_words.py --init assets/checkpoint.pt --steps 6000 --device cuda
+python scripts/demo_words.py --text "glass holds"        # -> assets/words.gif
+python scripts/export_weights.py --checkpoint assets/checkpoint_words.pt  # -> web/weights.js
+
+# 8. desktop creature (Electron). The cells you see are the automaton.
 cd electron && npm install && npm start
 #    local model, on an RTX 5060 Ti 16GB:
 ollama pull qwen2.5:14b
 ```
+
+## The body speaks
+
+[![Fine-tune on an A100 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/AaronGrace978/Automata/blob/main/notebooks/train_words_colab.ipynb)
+`notebooks/train_words_colab.ipynb`: clone → fine-tune (two phases) → proof strip → export `web/weights.js` → download.
+
+![Frustule, then GLASS, then HOLDS, then frustule again](assets/demo/words_strip.png)
+
+One rule, every cell. The diatom grows; you speak; a local model answers in
+the creature's voice; and the **same cells rebuild themselves as each word of
+the answer**, then return to glass. There is no text layer on the body. Channel
+10 is the silica template — a diatom lays glass along an organic template, and
+here the template is a glyph. The rule was fine-tuned (`train_morph`) on a pool
+where half the tasks are frustules with an empty template and half are words,
+and organisms are handed new tasks without resetting their bodies, so it learns
+frustule→word, word→word, and word→frustule. The desktop window runs that rule
+in JavaScript, cell for cell with PyTorch (`tests/test_body_parity.py`), and
+the grid's alpha is the height of the glass.
 
 ## Touch it: the browser creature
 
@@ -117,7 +142,7 @@ The desktop creature runs **on the machine that draws it**. Decision, in full in
 - **Also allowed:** `qwen2.5:7b` (Apache-2.0), `phi4` and `phi4-mini` (MIT). Set `DIATOM_MODEL`. Anything else is refused, including Llama (monthly-user cap) and the Qwen 3B / 72B sizes (Qwen license, not Apache-2.0).
 - **Ollama Cloud: no.** Prompts would leave the machine, and the hosted catalog mixes licenses. The app refuses a non-loopback host. Local Ollama is MIT. If it is not installed, the frustule still morphs and the grounded narrator still answers.
 
-Say **bloom** and the girdle rises. Say **rest** and it settles. **Cut** takes a wedge out of the valve; the wedge heals.
+Say something and the reply is spelled by the cells. **Cut** removes half the body; the rule regrows it.
 
 ## Fine-tune road (where to go next)
 
@@ -125,7 +150,8 @@ Say **bloom** and the girdle rises. Say **rest** and it settles. **Cut** takes a
 - **Real diatom data**: swap `batch_targets()` for SEM images (e.g. neuronal diatom datasets); keep the pool + damage loop unchanged.
 - **Richer audio**: beat-phase waves, chroma → palette rotation, onset → pore bursts; condition the *genome* on a full track for "song → species".
 - **Evo search**: mutate genomes / rule weights with CMA-ES against symmetry + pore-regularity fitness; keep the prettiest frustules.
-- **3D frustules**: the desktop app already wears the felt state as a glass pillbox (`electron/`). A learned 3D cellular automaton — real girdle cylinders grown by a local rule — is still open.
+- **3D frustules**: the desktop app lifts the 2D grid into glass (`electron/`). A true 3D cellular automaton — girdle cylinders grown by a 3D local rule — is still open.
+- **Longer speech**: the 48-cell body holds one word at a time. Grow it to 96 cells (`--size 96`) for phrases, or train a second body per line.
 
 ## Layout
 
@@ -135,10 +161,11 @@ nca/diatom.py     procedural diatom targets (centric + pennate)
 nca/audio.py      wav/synth -> 8-dim conditioning vectors
 nca/train.py      pool training + regeneration + audio augmentation
 nca/utils.py      visualisation (GIF/grid) + damage probes
-nca/morph.py      pose that drives the 3D frustule (ported in electron/renderer/morph.js)
+nca/glyph.py      words -> silica templates + RGBA targets (ported in electron/renderer/glyph.js)
+nca/morph.py      felt state -> fire rate / energy (ported in electron/renderer/morph.js)
 nca/runtime.json  commercial model lock: local Qwen2.5-14B Q4, no Ollama Cloud
-scripts/          train / grow / regenerate / audio / voice / mind / talk
-electron/         desktop app: 3D diatom you can speak to
+scripts/          train / train_words / grow / regenerate / audio / voice / mind / talk / words
+electron/         desktop app: the automaton itself, as glass, spelling its replies
 web/demo.html     interactive browser creature (mic + synth + surgery)
 tests/            rule, targets, audio, voice, mind, runtime lock, pose parity
 assets/           checkpoints + generated GIFs (gitignored outputs)
@@ -176,7 +203,7 @@ For attribution in academic or professional contexts, please cite this work as:
   year      = {2026},
   month     = {September},
   url       = {https://github.com/AaronGrace978/Automata},
-  note      = {Working paper v1.6}
+  note      = {Working paper v1.7}
 }
 ```
 

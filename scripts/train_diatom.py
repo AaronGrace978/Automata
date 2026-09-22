@@ -1,6 +1,11 @@
 """Train a diatom-growing NCA: python scripts/train_diatom.py --steps 3000."""
 from __future__ import annotations
 
+import os as _os
+import sys as _sys
+
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+
 import argparse
 import os
 

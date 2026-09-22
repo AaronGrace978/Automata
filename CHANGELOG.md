@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.7.1 — 2026-09-22
+
+- `notebooks/train_words_colab.ipynb`: fine-tune the word rule on a Colab A100 in two phases, proof strip, stability check, export and download `web/weights.js`.
+- `scripts/*.py` find `nca/` from any working directory; `train_words.py --pool` sets the replay pool size.
+
+## 1.7.0 — 2026-09-22
+
+The body speaks.
+
+- Channel 10 is the silica template. `train_morph` fine-tunes the diatom rule so the frustule grows into a word written there, holds it, and returns to glass when it clears (`scripts/train_words.py`, `scripts/demo_words.py`).
+- The desktop window runs the real automaton (`electron/renderer/nca.js`, cell-for-cell with PyTorch, checked by `tests/test_body_parity.py`). Its grid is the 3D glass; there is no procedural frustule.
+- Replies from the local model are spelled by the cells, one word at a time.
+- Camera looks at the body. The felt-state meters sit in the dock.
+
 ## 1.6.0 — 2026-09-22
 
 Desktop creature.
